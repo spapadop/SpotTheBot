@@ -150,9 +150,8 @@ public class UserTracker {
                 throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
-               
-        //fq = new FilterQuery();
 
+        //fq = new FilterQuery();
         long userIDs[] = new long[highlyRTed.size()];
         int i = 0;
         for (Long id : highlyRTed) {
@@ -161,13 +160,11 @@ public class UserTracker {
 
         //fq.follow(userIDs);
         //fq.track(userIDs);
-        
         fq = new FilterQuery(0, userIDs);
 
         stream = new TwitterStreamFactory(config).getInstance();
         stream.addListener(listener);
         stream.filter(fq);
-        
 
     }
 
