@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimerTask;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.JSONException;
@@ -35,7 +36,8 @@ public class RetweetObserver {
 
     //private ArrayList<TwitterUser> usersColl;
     private HashSet<Long> uniqueUsers; //used to check if a user has already occured in the database
-    private ArrayList<TwitterUser> usersColl; //all users found in our database
+    private CopyOnWriteArrayList<TwitterUser> usersColl;
+    //private ArrayList<TwitterUser> usersColl; //all users found in our database
     private HashSet<Long> highlyRTed; //users that have highly retweeted tweets
 
     /**
@@ -43,7 +45,8 @@ public class RetweetObserver {
      */
     public RetweetObserver() throws JSONException {
         //initializing the lists
-        usersColl = new ArrayList<>();
+        //usersColl = new ArrayList<>();
+        usersColl = new CopyOnWriteArrayList<>();
         uniqueUsers = new HashSet<>();
         highlyRTed = new HashSet<>();
 
@@ -85,7 +88,11 @@ public class RetweetObserver {
         return uniqueUsers;
     }
 
-    public ArrayList<TwitterUser> getUsersColl() {
+//    public ArrayList<TwitterUser> getUsersColl() {
+//        return usersColl;
+//    }
+    
+    public CopyOnWriteArrayList<TwitterUser> getUsersColl() {
         return usersColl;
     }
 
@@ -95,15 +102,20 @@ public class RetweetObserver {
 
     public void printAll() {
         for (TwitterUser user : usersColl) {
-            System.out.println("UserID: " + user.getUserID());
-            System.out.println("Retweets received: " + user.getRetweetsReceived());
-            System.out.println("Last RTed: " + user.getLastRTed());
-            Iterator it = user.getTimesRetweeted().entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                System.out.println(pair.getKey() + " = " + pair.getValue());
+            
+            if(user.getRetweetsReceived() > 5){
+                
+                System.out.println("UserID: " + user.getUserID());
+                System.out.println("Retweets received: " + user.getRetweetsReceived());
+                System.out.println("Last RTed: " + user.getLastRTed());
+                
+                Iterator it = user.getTimesRetweeted().entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry pair = (Map.Entry) it.next();
+                    System.out.println(pair.getKey() + " = " + pair.getValue());
+                }
+                //System.out.println("---------------------");
             }
-            System.out.println("---------------------");
         }
     }
 

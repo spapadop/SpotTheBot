@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package spotthebot;
 
 import com.mongodb.DB;
@@ -16,6 +11,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import twitter4j.ConnectionLifeCycleListener;
 import twitter4j.FilterQuery;
 import twitter4j.StallWarning;
 import twitter4j.Status;
@@ -48,20 +44,23 @@ public class UserTracker {
     private HashSet<Long> highlyRTed;
 
     public UserTracker() {
-//         highlyRTed = new ArrayList<>();
+        this.highlyRTed = null;
         configuration();
         initializeMongo();
         startListener();
-        //startFiltering();
+        startFiltering();
     }
-
+    
+    /**
+     * creating a thread for running the tracking
+     * @param highlyRTed 
+     */
     public UserTracker(HashSet<Long> highlyRTed) {
 //         this.highlyRTed = new HashSet<>();
         this.highlyRTed = highlyRTed;
         configuration();
         initializeMongo();
         startListener();
-        //startFiltering();
     }
 
     /**
@@ -76,6 +75,8 @@ public class UserTracker {
         cb.setOAuthAccessTokenSecret("Tc40irSU8G15IvvEu6EuVjsaM1xQAVCDzJoaSTnxYVFOI");
         cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
         config = cb.build();
+        
+        //stream = new TwitterStreamFactory(config).getInstance();
     }
 
     /**
@@ -97,6 +98,21 @@ public class UserTracker {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    public void update (HashSet<Long> newcomers){
+        stream.shutdown();
+        this.startListener();
+    }
+    
+    public void renewList(HashSet<Long> newcomers){
+        if(highlyRTed!=null){
+            highlyRTed.clear();
+            highlyRTed = newcomers;
+        } else {
+            highlyRTed = newcomers;
+        }
+        startFiltering();
+    }
 
     /**
      *
@@ -110,18 +126,22 @@ public class UserTracker {
                 User user = status.getUser();
                 Long id = user.getId();
                 boolean flag = false;
-                for (Long fuserID : highlyRTed) {
-                    if (Objects.equals(id, fuserID)) {
-                        System.out.println("Found a tweet from a tracked user!");
-                        flag = true;
-                        break;
+                if(highlyRTed!= null){
+                    System.out.println("exoume lista energi");
+                    for (Long fuserID : highlyRTed) {
+                        if (Objects.equals(id, fuserID)) {
+                            System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Found a tweet from a tracked user!");
+                            System.out.println("userID: " + fuserID);
+                            flag = true;
+                            break;
+                        }
                     }
-                }
-                if (flag) {
-                    String json = DataObjectFactory.getRawJSON(status);
-                    System.out.println("Taking the JSON form of a tweet from tracked user!");
-                    DBObject jsonObj = (DBObject) JSON.parse(json);
-                    trackedTweetsColl.insert(jsonObj);
+                    if (flag) {
+                        String json = DataObjectFactory.getRawJSON(status);
+                        System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Taking the JSON form of a tweet from tracked user!");
+                        DBObject jsonObj = (DBObject) JSON.parse(json);
+                        trackedTweetsColl.insert(jsonObj);
+                    }
                 }
             }
 
@@ -150,21 +170,21 @@ public class UserTracker {
                 throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
+        
+        if(highlyRTed!=null){
+            stopStreaming();
+            long userIDs[] = new long[highlyRTed.size()];
+            int i = 0;
+            for (Long id : highlyRTed) {
+                userIDs[i++] = id;
+            }
 
-        //fq = new FilterQuery();
-        long userIDs[] = new long[highlyRTed.size()];
-        int i = 0;
-        for (Long id : highlyRTed) {
-            userIDs[i++] = id;
+            fq = new FilterQuery(0, userIDs);
+            
+            stream = new TwitterStreamFactory(config).getInstance();
+            stream.addListener(listener);
+            stream.filter(fq);
         }
-
-        //fq.follow(userIDs);
-        //fq.track(userIDs);
-        fq = new FilterQuery(0, userIDs);
-
-        stream = new TwitterStreamFactory(config).getInstance();
-        stream.addListener(listener);
-        stream.filter(fq);
 
     }
 
@@ -187,6 +207,46 @@ public class UserTracker {
         stream = new TwitterStreamFactory(config).getInstance();
         stream.addListener(listener);
         stream.filter(fq);
+    }
+    
+    /**
+     * Shut downs the crawling.
+     */
+    private void stopStreaming() {
+
+        if (stream == null) {
+            return;
+        }
+        
+        stream.addConnectionLifeCycleListener(new ConnectionLifeCycleListener() {
+
+            @Override
+            public void onConnect() {
+
+            }
+
+            @Override
+            public void onDisconnect() {
+
+            }
+
+            @Override
+            public void onCleanUp() {
+                stream = null;
+            }
+        });
+
+        stream.shutdown();
+
+        while (stream != null) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+            }
+        }
+        if (stream == null) {
+            System.out.println("Stream Stopped");
+        }
     }
 
 }

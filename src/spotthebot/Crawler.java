@@ -1,6 +1,5 @@
 package spotthebot;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -9,17 +8,13 @@ import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import static javafx.application.Platform.exit;
-import twitter4j.ConnectionLifeCycleListener;
 import twitter4j.FilterQuery;
 import twitter4j.JSONException;
 import twitter4j.JSONObject;
@@ -27,13 +22,8 @@ import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
-import twitter4j.Trends;
-import twitter4j.Twitter;
-import twitter4j.TwitterException;
-import twitter4j.TwitterFactory;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
-import twitter4j.User;
 import twitter4j.conf.Configuration;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
@@ -53,28 +43,19 @@ public class Crawler extends TimerTask {
 
     // variables for handling twitter Streaming API
     private TwitterStream stream;
-    private StatusListener listener;
     private Configuration config;
-//    private FilterQuery filter;
+    private StatusListener listener;
+    private FilterQuery fq;
 
-    //variables for  parallel running Threads
-//    private Thread topTopicThread;
-//    private Runnable topTopicRunnable;
-//    private volatile boolean stopRequested = false;//volatile variables are global for all Threads
-//    private Object lock;
-//    private HashSet<String> usersToFollow;
-    private int counter;
     private RetweetObserver users;
+    private UserTracker trackingUsers;
 
     public Crawler() throws JSONException {
         users = new RetweetObserver();
-//        usersToFollow = new HashSet<>();
-        counter = 0;
+        trackingUsers = null;
         configuration(); // configures my application as developer mode
         initializeMongo(); // creates the database and collection in mongoDB
         startListener(); // listener to Streaming API that will get the tweets
-        //crawlStream(); // starts the crawling from Streaming API
-
     }
 
     /**
@@ -90,6 +71,7 @@ public class Crawler extends TimerTask {
         cb.setOAuthAccessTokenSecret("Tc40irSU8G15IvvEu6EuVjsaM1xQAVCDzJoaSTnxYVFOI");
         cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
         config = cb.build();
+        fq = new FilterQuery();
 
         stream = new TwitterStreamFactory(config).getInstance();
     }
@@ -129,9 +111,9 @@ public class Crawler extends TimerTask {
                     JSONObject jobj = new JSONObject(jsonObj.toString());
 
                     if (!jobj.getJSONObject("retweeted_status").getString("id_str").isEmpty()) { //FOUND A RETWEET
-                        
-                        Long userID = status.getRetweetedStatus().getUser().getId(); //gets userID
-                        Date at = status.getRetweetedStatus().getCreatedAt(); //gets date retweet created
+
+                        Long userID = status.getRetweetedStatus().getUser().getId(); //gets userID of original tweet
+                        Date at = status.getCreatedAt(); //gets date the retweet created (current)
                         Long tweetID = status.getRetweetedStatus().getId(); //gets original tweetID
 
                         //System.out.println("RETWEET of the original: User: " +userID + " tweetID: "+ tweetID + " at: " + at);    
@@ -162,12 +144,6 @@ public class Crawler extends TimerTask {
                             users.getUsersColl().add(new TwitterUser(userID, tweetID, at));
                             //System.out.println("New user added to usersColl");
                         }
-
-                        counter++;
-                    }
-
-                    if (counter == 1000) {
-                        users.printAll();
                     }
 
                 } catch (JSONException ex) {
@@ -200,44 +176,26 @@ public class Crawler extends TimerTask {
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
-        
-        FilterQuery fq = new FilterQuery();
 
         String keywords[] = {"greece", "buy", "now", "yes", "money", "xxx", "bet"};
+        String lang[] = {"en"};
 
         fq.track(keywords);
+        fq.language(lang);
 
         stream.addListener(listener);
-        //stream.firehose(0);
-        //stream.retweet();
         stream.filter(fq);
-
-        //crawlStream();
-    }
-
-    /**
-     * Creates a filter for getting the tweets from Twitter Streaming API
-     */
-    private void crawlStream() {
-        stream = new TwitterStreamFactory(config).getInstance();
-        stream.addListener(listener);
     }
 
     /**
      * Creates a filter for getting the tweets with spam phrases from Twitter
      * Streaming API
      */
-    private void crawlStreamWithFilter(FilterQuery filter) {
+    private void crawlStreamWithFilter() {
 
-//        filter=new FilterQuery(); 
-//        //read a file of spam words and put them in keywords[]
-//        String keywords[]=new String[100];
-//        keywords[0] = "free";
-//        keywords[1] = "now";
-//        filter.track(keywords);        
         stream = new TwitterStreamFactory(config).getInstance();
         stream.addListener(listener);
-        //stream.filter(filter);
+        stream.filter(fq);
     }
 
     public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
@@ -247,33 +205,50 @@ public class Crawler extends TimerTask {
 
     @Override
     public void run() {
-        System.out.println("Irthe i ora gia elegxo");
-        users.getUsersColl().stream().forEach((fuser) -> {
-            try {
-                SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
-                Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
+        System.out.println("****** HRTHE I WRA ********");
 
-                Date currentTime = new Date();
-                dateFormat.format(currentTime);
-                System.out.println(lastRTedTime);
-                System.out.println(currentTime);
-                System.out.println(getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS));
-                //System.out.println(fuser.getRetweetsReceived());
-                
-                if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 1) {
-                    users.getHighlyRTed().add(fuser.getUserID());
-                } else {
-                    users.getHighlyRTed().remove(fuser.getUserID());
+        users.printAll();
+        if (!users.getUsersColl().isEmpty()) {
+
+            for (TwitterUser fuser : users.getUsersColl()) {
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
+                    Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
+
+                    Date currentTime = new Date();
+                    dateFormat.format(currentTime);
+
+                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 20) {
+                        users.getHighlyRTed().add(fuser.getUserID());
+                    } else {
+                        users.getHighlyRTed().remove(fuser.getUserID());
+                    }
+                } catch (ParseException ex) {
+                    Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (ParseException ex) {
-                Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
             }
-        });
-        System.out.println("printing highly RTed!");
-        for (Long id : users.getHighlyRTed()) {
-            System.out.println(id);
-        }
 
-        //UserTracker nf = new UserTracker(users.getHighlyRTed());
+            System.out.println("--------------- printing highly RTed! ---------------------");
+            for (Long id : users.getHighlyRTed()) {
+                System.out.println(id);
+            }
+
+            //System.out.println("------------------------------------------------------------");
+
+            if (users.getHighlyRTed() != null) {
+                
+                if (trackingUsers == null) { //first time list for users
+                    System.out.println("first time entering");
+                    trackingUsers = new UserTracker(users.getHighlyRTed());
+                    
+                } else { //update existing list of users
+                    System.out.println("second and after");
+                    //trackingUsers.update(users.getHighlyRTed());
+                }
+            }
+
+        } else {
+            System.out.println("List of highly retweeted users currently empty");
+        }
     }
 }
