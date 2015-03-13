@@ -45,10 +45,11 @@ public class UserTracker {
 
     public UserTracker() {
         this.highlyRTed = null;
+        fq = new FilterQuery();
         configuration();
         initializeMongo();
         startListener();
-        startFiltering();
+        //startFiltering();
     }
     
     /**
@@ -58,9 +59,11 @@ public class UserTracker {
     public UserTracker(HashSet<Long> highlyRTed) {
 //         this.highlyRTed = new HashSet<>();
         this.highlyRTed = highlyRTed;
+        fq = new FilterQuery();
         configuration();
         initializeMongo();
         startListener();
+        //startFiltering();
     }
 
     /**
@@ -99,20 +102,20 @@ public class UserTracker {
         }
     }
     
-    public void update (HashSet<Long> newcomers){
-        stream.shutdown();
-        this.startListener();
-    }
-    
-    public void renewList(HashSet<Long> newcomers){
-        if(highlyRTed!=null){
-            highlyRTed.clear();
-            highlyRTed = newcomers;
-        } else {
-            highlyRTed = newcomers;
-        }
-        startFiltering();
-    }
+//    public void update (HashSet<Long> newcomers){
+//        stream.shutdown();
+//        this.startListener();
+//    }
+//    
+//    public void renewList(HashSet<Long> newcomers){
+//        if(highlyRTed!=null){
+//            highlyRTed.clear();
+//            highlyRTed = newcomers;
+//        } else {
+//            highlyRTed = newcomers;
+//        }
+//        startFiltering();
+//    }
 
     /**
      *
@@ -128,7 +131,9 @@ public class UserTracker {
                 boolean flag = false;
                 if(highlyRTed!= null){
                     System.out.println("exoume lista energi");
+                    //System.out.println(highlyRTed.size());
                     for (Long fuserID : highlyRTed) {
+                        System.out.println("to id tou trexontos user tweet: " +id);
                         if (Objects.equals(id, fuserID)) {
                             System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Found a tweet from a tracked user!");
                             System.out.println("userID: " + fuserID);
@@ -172,18 +177,23 @@ public class UserTracker {
         };
         
         if(highlyRTed!=null){
-            stopStreaming();
+            //stopStreaming();
+            
             long userIDs[] = new long[highlyRTed.size()];
             int i = 0;
             for (Long id : highlyRTed) {
                 userIDs[i++] = id;
             }
+            if(userIDs.length>0){
+                for (int j=0; j<userIDs.length; j++) {
+                    System.out.println(userIDs[j]);
+                }
+                fq.follow(userIDs);
 
-            fq = new FilterQuery(0, userIDs);
-            
-            stream = new TwitterStreamFactory(config).getInstance();
-            stream.addListener(listener);
-            stream.filter(fq);
+                stream = new TwitterStreamFactory(config).getInstance();
+                stream.addListener(listener);
+                stream.filter(fq);
+            }
         }
 
     }
@@ -194,12 +204,17 @@ public class UserTracker {
      * @param listener
      */
     private void startFiltering() {
-        fq = new FilterQuery();
-
+        
+        System.out.println("Start Filtering:");
+        
         long userIDs[] = new long[highlyRTed.size()];
         int i = 0;
         for (Long id : highlyRTed) {
             userIDs[i++] = id;
+        }
+        
+        for (int j=0; j<userIDs.length; j++) {
+            System.out.println(userIDs[j]);
         }
 
         fq.follow(userIDs);
@@ -237,6 +252,7 @@ public class UserTracker {
         });
 
         stream.shutdown();
+        
 
         while (stream != null) {
             try {
@@ -245,8 +261,7 @@ public class UserTracker {
             }
         }
         if (stream == null) {
-            System.out.println("Stream Stopped");
+            System.out.println("$$$$$$$$$$$$$$$ Stream Stopped");
         }
     }
-
 }

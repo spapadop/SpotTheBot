@@ -72,7 +72,6 @@ public class Crawler extends TimerTask {
         cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
         config = cb.build();
         fq = new FilterQuery();
-
         stream = new TwitterStreamFactory(config).getInstance();
     }
 
@@ -191,12 +190,12 @@ public class Crawler extends TimerTask {
      * Creates a filter for getting the tweets with spam phrases from Twitter
      * Streaming API
      */
-    private void crawlStreamWithFilter() {
-
-        stream = new TwitterStreamFactory(config).getInstance();
-        stream.addListener(listener);
-        stream.filter(fq);
-    }
+//    private void crawlStreamWithFilter() {
+//
+//        stream = new TwitterStreamFactory(config).getInstance();
+//        stream.addListener(listener);
+//        stream.filter(fq);
+//    }
 
     public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
         long diffInMillies = date2.getTime() - date1.getTime();
@@ -205,9 +204,9 @@ public class Crawler extends TimerTask {
 
     @Override
     public void run() {
-        System.out.println("****** HRTHE I WRA ********");
+        System.out.println("****** PERISTASIAKOS ELEGXOS ********");
 
-        users.printAll();
+        //users.printAll();
         if (!users.getUsersColl().isEmpty()) {
 
             for (TwitterUser fuser : users.getUsersColl()) {
@@ -218,7 +217,7 @@ public class Crawler extends TimerTask {
                     Date currentTime = new Date();
                     dateFormat.format(currentTime);
 
-                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 20) {
+                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 4) {
                         users.getHighlyRTed().add(fuser.getUserID());
                     } else {
                         users.getHighlyRTed().remove(fuser.getUserID());
@@ -238,11 +237,11 @@ public class Crawler extends TimerTask {
             if (users.getHighlyRTed() != null) {
                 
                 if (trackingUsers == null) { //first time list for users
-                    System.out.println("first time entering");
-                    trackingUsers = new UserTracker(users.getHighlyRTed());
+                    if(users.getHighlyRTed().size() >1){
+                        trackingUsers = new UserTracker(users.getHighlyRTed());
+                    }
                     
                 } else { //update existing list of users
-                    System.out.println("second and after");
                     //trackingUsers.update(users.getHighlyRTed());
                 }
             }
