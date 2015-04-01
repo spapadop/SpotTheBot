@@ -21,7 +21,7 @@ public class SpotTheBot {
         Crawler crawl = new Crawler();
 
         Timer time = new Timer(); // Instantiate Timer Object
-        time.schedule(crawl, 0, 10000); // Create Repetitively task for every 10 seconds
+        time.schedule(crawl, 0, 3600000); // Create Repetitively task for every 1 hour
 
     }
 }

@@ -33,7 +33,7 @@ public class UserTracker {
     // variables for handling nosql database Mongo
     private MongoClient mclient;
     private DB tweetsDB, trackedTweetsDB;
-    private DBCollection tweetsColl, trackedTweetsColl;
+    private DBCollection tweetsColl, usersColl, retweetsColl, trackedTweetsColl;
 
     // variables for handling twitter Streaming API
     private TwitterStream stream;
@@ -90,22 +90,26 @@ public class UserTracker {
     private void initializeMongo() {
         try {
             mclient = new MongoClient("localhost", 27017);
-            tweetsDB = mclient.getDB("tweets");
-            tweetsColl = tweetsDB.createCollection("tweetsColl", null);
+            tweetsDB = mclient.getDB("twitter");
+            usersColl = tweetsDB.createCollection("users", null);
+            tweetsColl = tweetsDB.createCollection("tweets", null);
+            retweetsColl = tweetsDB.createCollection("retweets", null);
 
             //gets the followed users collection from mongodb
-            trackedTweetsDB = mclient.getDB("TrackedTweets");
-            trackedTweetsColl = trackedTweetsDB.createCollection("trackedTweetsColl", null);
+            trackedTweetsDB = mclient.getDB("trackedUsers");
+            trackedTweetsColl = trackedTweetsDB.createCollection("trackedData", null);
 
         } catch (UnknownHostException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-//    public void update (HashSet<Long> newcomers){
-//        stream.shutdown();
-//        this.startListener();
-//    }
+    public void update (HashSet<Long> newcomers){
+        stream.shutdown();
+        this.highlyRTed = newcomers;
+        this.startListener();
+    }
+    
 //    
 //    public void renewList(HashSet<Long> newcomers){
 //        if(highlyRTed!=null){
@@ -117,11 +121,12 @@ public class UserTracker {
 //        startFiltering();
 //    }
 
+    
     /**
      *
      */
     public void startListener() {
-
+        //System.out.println("Starts listener for tracking users");
         listener = new StatusListener() {
 
             @Override
@@ -130,23 +135,23 @@ public class UserTracker {
                 Long id = user.getId();
                 boolean flag = false;
                 if(highlyRTed!= null){
-                    System.out.println("exoume lista energi");
+                    //System.out.println("exoume lista energi");
                     //System.out.println(highlyRTed.size());
-                    for (Long fuserID : highlyRTed) {
-                        System.out.println("to id tou trexontos user tweet: " +id);
-                        if (Objects.equals(id, fuserID)) {
-                            System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Found a tweet from a tracked user!");
-                            System.out.println("userID: " + fuserID);
-                            flag = true;
-                            break;
-                        }
-                    }
-                    if (flag) {
-                        String json = DataObjectFactory.getRawJSON(status);
-                        System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Taking the JSON form of a tweet from tracked user!");
-                        DBObject jsonObj = (DBObject) JSON.parse(json);
-                        trackedTweetsColl.insert(jsonObj);
-                    }
+//                    for (Long fuserID : highlyRTed) {
+//                        System.out.println("to id tou trexontos user tweet: " +id);
+//                        if (Objects.equals(id, fuserID)) {
+//                            System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Found a tweet from a tracked user!");
+//                            System.out.println("userID: " + fuserID);
+//                            flag = true;
+//                            break;
+//                        }
+//                    }
+//                    if (flag) {
+                    String json = DataObjectFactory.getRawJSON(status);
+                    //System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Taking the JSON form of a tweet from tracked user!");
+                    DBObject jsonObj = (DBObject) JSON.parse(json);
+                    trackedTweetsColl.insert(jsonObj);
+//                    }
                 }
             }
 
@@ -185,17 +190,19 @@ public class UserTracker {
                 userIDs[i++] = id;
             }
             if(userIDs.length>0){
-                for (int j=0; j<userIDs.length; j++) {
-                    System.out.println(userIDs[j]);
-                }
-                fq.follow(userIDs);
+                
+                //print all userIDs that are going to be followed
+//                for (int j=0; j<userIDs.length; j++) {
+//                    System.out.println(userIDs[j]);
+//                }
+                
+                fq.follow(userIDs); // follow users' activity
 
                 stream = new TwitterStreamFactory(config).getInstance();
                 stream.addListener(listener);
                 stream.filter(fq);
             }
         }
-
     }
 
     /**

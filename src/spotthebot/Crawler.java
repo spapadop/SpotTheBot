@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.FilterQuery;
+//import twitter4j.JSONArray;
 import twitter4j.JSONException;
 import twitter4j.JSONObject;
 import twitter4j.StallWarning;
@@ -24,9 +25,13 @@ import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
+import twitter4j.User;
 import twitter4j.conf.Configuration;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
+
+import org.json.simple.JSONArray;
+//import org.json.simple.JSONObject;
 
 /**
  * Crawls tweets from Streaming API.
@@ -35,11 +40,14 @@ import twitter4j.json.DataObjectFactory;
  */
 public class Crawler extends TimerTask {
 
-//    private Twitter twitter;
+    //private Twitter twitter;
+    
     // variables for handling nosql database Mongo
     private MongoClient mclient;
     private DB tweetsDB;
-    private DBCollection tweetsColl;
+    private DBCollection tweetsColl; //all info of tweets except user{}, where we just store the id_str
+    private DBCollection usersColl; //all user{} info of json
+    private DBCollection retweetsColl; //id_str of two users, createdAt & tweetID of original
 
     // variables for handling twitter Streaming API
     private TwitterStream stream;
@@ -51,6 +59,7 @@ public class Crawler extends TimerTask {
     private UserTracker trackingUsers;
 
     public Crawler() throws JSONException {
+        
         users = new RetweetObserver();
         trackingUsers = null;
         configuration(); // configures my application as developer mode
@@ -83,8 +92,11 @@ public class Crawler extends TimerTask {
     private void initializeMongo() {
         try {
             mclient = new MongoClient("localhost", 27017);
-            tweetsDB = mclient.getDB("tweets");
-            tweetsColl = tweetsDB.createCollection("tweetsColl", null);
+            tweetsDB = mclient.getDB("twitter");
+            usersColl = tweetsDB.createCollection("users", null);
+            tweetsColl = tweetsDB.createCollection("tweets", null);
+            retweetsColl = tweetsDB.createCollection("retweets", null);
+            
         } catch (UnknownHostException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -95,54 +107,64 @@ public class Crawler extends TimerTask {
      */
     private void startListener() {
 
-        //I use Twitter4J library to connect to Twitter API
-        //twitter=new TwitterFactory(config).getInstance();
         listener = new StatusListener() {
 
             @Override
-            public void onStatus(Status status) {
+            public void onStatus(Status status) { //streaming tweets (not necessarily retweets)
                 try {
 
-                    //User user = status.getRetweetedStatus().getUser(); //user whose tweet was retweeted
-                    String json = DataObjectFactory.getRawJSON(status);
-                    DBObject jsonObj = (DBObject) JSON.parse(json);
+                    //User user = status.getRetweetedStatus().getUser();//user whose tweet was retweeted
+                    String json = DataObjectFactory.getRawJSON(status); //gets the raw json form of tweet
+                    
+                    DBObject dbObj = (DBObject) JSON.parse(json);       //creates a DBObject out of json for mongoDB
+                    JSONObject jObj = new JSONObject(dbObj.toString()); //creates a JSONObject out of the DBObject
 
-                    JSONObject jobj = new JSONObject(jsonObj.toString());
-
-                    if (!jobj.getJSONObject("retweeted_status").getString("id_str").isEmpty()) { //FOUND A RETWEET
-
-                        Long userID = status.getRetweetedStatus().getUser().getId(); //gets userID of original tweet
+                    if (!jObj.getJSONObject("retweeted_status").getString("id_str").isEmpty()) { //FOUND A RETWEET
+                        
+                        //========== STORING INTO LOCAL VARIABLES ============//
+                        Long originalUserID = status.getRetweetedStatus().getUser().getId(); //gets userID of original tweet
+                        Long originalTweetID = status.getRetweetedStatus().getId(); //gets tweetID of original tweet
+                        Long retweetedUserID = status.getUser().getId(); //gets the userID of retweeted user
                         Date at = status.getCreatedAt(); //gets date the retweet created (current)
-                        Long tweetID = status.getRetweetedStatus().getId(); //gets original tweetID
-
-                        //System.out.println("RETWEET of the original: User: " +userID + " tweetID: "+ tweetID + " at: " + at);    
-                        tweetsColl.insert(jsonObj); //insert retweet on mongoDB
-
-                        boolean flag = false;
-                        //check if user already exist in our database
-                        for (Long id : users.getUniqueUsers()) {
-                            if (Objects.equals(id, userID)) {
-                                flag = true;
-                                break;
-                            }
+                        //====================================================//
+                        
+                        //===== INSERT RETWEET INTO RETWEETS COLLECTION ======//
+                        JSONObject obj = new JSONObject();
+                        obj.put("originalUserID", originalUserID);
+                        obj.put("retweetedUserID", retweetedUserID);
+                        obj.put("created_at", at);
+                        obj.put("originalTweetID", originalTweetID);
+                        
+                        DBObject dbobj = (DBObject) obj;
+                        retweetsColl.insert(dbobj);
+                        //====================================================//
+                        
+                        //==== INSERT ORIGINAL USER INTO USERS COLLECTION ====//
+                        if(!checkIfUserExists(originalUserID, originalTweetID, at)){
+                            DBObject originalUserDB = (DBObject) jObj.getJSONObject("retweeted_status").getJSONObject("user"); //json user attribute of original user
+                            usersColl.insert(originalUserDB);   //insert original user on mongoDB
                         }
+                        //====================================================//
+                        
+                        //=== INSERT RETWEETED USER INTO USERS COLLECTION ====//
+                        //checkIfUserExists(retweetedUserID, originalTweetID, at);
+                        //DBObject RTuserDB = (DBObject) jObj.getJSONObject("user"); //json user attribute of retweeted user
+                        //usersColl.insert(RTuserDB);         //insert retweeted user on mongoDB
+                        //====================================================//
+                        
+                        //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
+                        if(!checkIfTweetIDExists(originalTweetID)){ //if tweetID doesnt exist
+                            JSONObject originalTweetJSON = jObj.getJSONObject("retweeted_status");
 
-                        if (flag) { //if user exists
-                            int pos = 0;
-                            for (TwitterUser fuser : users.getUsersColl()) {
-                                if (Objects.equals(fuser.getUserID(), userID)) {
-                                    break;
-                                }
-                                pos++;
-                            }
-                            users.getUsersColl().get(pos).update(tweetID, at);
-                            //System.out.println("Existing user of usersColl updated!" + " at pos: " + pos);
+                            //replace whole user json attribute, with just userID
+                            originalTweetJSON.remove("user");
+                            originalTweetJSON.put("user", originalUserID);
+                            DBObject originalTweetDB = (DBObject) originalTweetJSON;
 
-                        } else { //if user doesnt exist
-                            users.getUniqueUsers().add(userID);
-                            users.getUsersColl().add(new TwitterUser(userID, tweetID, at));
-                            //System.out.println("New user added to usersColl");
+                            tweetsColl.insert(originalTweetDB); //insert original tweet on mongoDB    
                         }
+                        //====================================================//
+                        
                     }
 
                 } catch (JSONException ex) {
@@ -176,7 +198,7 @@ public class Crawler extends TimerTask {
             }
         };
 
-        String keywords[] = {"greece", "buy", "now", "yes", "money", "xxx", "bet"};
+        String keywords[] = {"I", "am", "is", "the", "a", "an", "and", "to", "we", "I", "it", "not", "so", "if", "go", "now", "come", "will", "on", "at"};
         String lang[] = {"en"};
 
         fq.track(keywords);
@@ -196,12 +218,65 @@ public class Crawler extends TimerTask {
 //        stream.addListener(listener);
 //        stream.filter(fq);
 //    }
+    
+    /**
+     * Checks if user exists or not and perform the proper actions.
+     * @param checkingID
+     * @param tweetID
+     * @param at
+     * @return true if user exists, false if doesnt exist.
+     */
+    public boolean checkIfUserExists(Long checkingID, Long tweetID, Date at){
+                
+        if(users.getUniqueUsers().contains(checkingID)){ //if user exists
+            
+            int pos = users.getUsersColl().indexOf(checkingID);
+            if(pos != -1){
+                users.getUsersColl().get(pos).update(tweetID, at);
+                System.out.println("Existing user of usersColl updated!" + " at pos: " + pos);
+            } else {
+                System.out.println("User doesnt exist! --> indexOf returned -1");
+            }
+            return true;
+            
+        } else { //if user doesnt exist
+            users.getUniqueUsers().add(checkingID);
+            users.getUsersColl().add(new TwitterUser(checkingID, tweetID, at));
+            //System.out.println("New user added to usersColl");
+            return false;
+        }
+    }
+    
+    
+    /**
+     * 
+     * @param checkingID
+     * @return 
+     */
+    public boolean checkIfTweetIDExists(Long checkingID){
+        if(users.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
+            return true;
+        } else {
+            users.getUniqueTweetIDs().add(checkingID);
+            return false;
+        }
+    }
 
+    /**
+     * 
+     * @param date1
+     * @param date2
+     * @param timeUnit
+     * @return 
+     */
     public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
         long diffInMillies = date2.getTime() - date1.getTime();
         return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * 
+     */
     @Override
     public void run() {
         System.out.println("****** PERISTASIAKOS ELEGXOS ********");
@@ -217,7 +292,7 @@ public class Crawler extends TimerTask {
                     Date currentTime = new Date();
                     dateFormat.format(currentTime);
 
-                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 4) {
+                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 20) {
                         users.getHighlyRTed().add(fuser.getUserID());
                     } else {
                         users.getHighlyRTed().remove(fuser.getUserID());
@@ -227,10 +302,10 @@ public class Crawler extends TimerTask {
                 }
             }
 
-            System.out.println("--------------- printing highly RTed! ---------------------");
-            for (Long id : users.getHighlyRTed()) {
-                System.out.println(id);
-            }
+            //System.out.println("--------------- printing highly RTed! ---------------------");
+//            for (Long id : users.getHighlyRTed()) {
+//                System.out.println(id);
+//            }
 
             //System.out.println("------------------------------------------------------------");
 
@@ -240,14 +315,17 @@ public class Crawler extends TimerTask {
                     if(users.getHighlyRTed().size() >1){
                         trackingUsers = new UserTracker(users.getHighlyRTed());
                     }
-                    
                 } else { //update existing list of users
-                    //trackingUsers.update(users.getHighlyRTed());
+                    System.out.println("><><>< Update List");
+                    trackingUsers.update(users.getHighlyRTed());
+                    for (Long id : users.getHighlyRTed()) {
+                        System.out.println(id);
+                    }
                 }
             }
 
         } else {
-            System.out.println("List of highly retweeted users currently empty");
+            //System.out.println("List of highly retweeted users currently empty");
         }
     }
 }

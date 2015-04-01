@@ -36,6 +36,7 @@ public class RetweetObserver {
 
     //private ArrayList<TwitterUser> usersColl;
     private HashSet<Long> uniqueUsers; //used to check if a user has already occured in the database
+    private HashSet<Long> uniqueTweetIDs;
     private CopyOnWriteArrayList<TwitterUser> usersColl;
     //private ArrayList<TwitterUser> usersColl; //all users found in our database
     private HashSet<Long> highlyRTed; //users that have highly retweeted tweets
@@ -48,6 +49,7 @@ public class RetweetObserver {
         //usersColl = new ArrayList<>();
         usersColl = new CopyOnWriteArrayList<>();
         uniqueUsers = new HashSet<>();
+        uniqueTweetIDs = new HashSet<>();
         highlyRTed = new HashSet<>();
 
         //configuration();
@@ -86,6 +88,10 @@ public class RetweetObserver {
 
     public HashSet<Long> getUniqueUsers() {
         return uniqueUsers;
+    }
+    
+    public HashSet<Long> getUniqueTweetIDs() {
+        return uniqueTweetIDs;
     }
 
 //    public ArrayList<TwitterUser> getUsersColl() {
