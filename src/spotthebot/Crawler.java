@@ -1,5 +1,6 @@
 package spotthebot;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -10,13 +11,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.FilterQuery;
-//import twitter4j.JSONArray;
 import twitter4j.JSONException;
 import twitter4j.JSONObject;
 import twitter4j.StallWarning;
@@ -25,13 +24,9 @@ import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
-import twitter4j.User;
 import twitter4j.conf.Configuration;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
-
-import org.json.simple.JSONArray;
-//import org.json.simple.JSONObject;
 
 /**
  * Crawls tweets from Streaming API.
@@ -62,9 +57,9 @@ public class Crawler extends TimerTask {
         
         users = new RetweetObserver();
         trackingUsers = null;
-        configuration(); // configures my application as developer mode
-        initializeMongo(); // creates the database and collection in mongoDB
-        startListener(); // listener to Streaming API that will get the tweets
+        configuration(); //configures my application as developer mode
+        initializeMongo(); //creates the database and collection in mongoDB
+        startListener(); //listener to Streaming API that will get the tweets
     }
 
     /**
@@ -93,9 +88,14 @@ public class Crawler extends TimerTask {
         try {
             mclient = new MongoClient("localhost", 27017);
             tweetsDB = mclient.getDB("twitter");
-            usersColl = tweetsDB.createCollection("users", null);
-            tweetsColl = tweetsDB.createCollection("tweets", null);
-            retweetsColl = tweetsDB.createCollection("retweets", null);
+            usersColl = tweetsDB.getCollection("users");
+            tweetsColl = tweetsDB.getCollection("tweets");
+            retweetsColl = tweetsDB.getCollection("retweets");
+            
+            usersColl.createIndex(new BasicDBObject("id_str", 1));  // create index on "id_str", ascending | also prevent duplicates
+            tweetsColl.createIndex(new BasicDBObject("created_at", 1));  // create index on "created_at", ascending
+            tweetsColl.createIndex(new BasicDBObject("id", 1));  // create index on tweetID of the original tweets, ascending
+            retweetsColl.createIndex(new BasicDBObject("created_at", 1));  // create index on "id_str", ascending
             
         } catch (UnknownHostException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
@@ -129,39 +129,50 @@ public class Crawler extends TimerTask {
                         //====================================================//
                         
                         //===== INSERT RETWEET INTO RETWEETS COLLECTION ======//
-                        JSONObject obj = new JSONObject();
-                        obj.put("originalUserID", originalUserID);
-                        obj.put("retweetedUserID", retweetedUserID);
-                        obj.put("created_at", at);
-                        obj.put("originalTweetID", originalTweetID);
+                        //storing necessary details for every retweet occured (like log file of RTs)
                         
-                        DBObject dbobj = (DBObject) obj;
-                        retweetsColl.insert(dbobj);
+                        BasicDBObject document = new BasicDBObject();
+                        document.put("originalTweetID", originalTweetID);    //save original tweetID
+                        document.put("originalUserID", originalUserID);      //save original userID 
+                        document.put("retweetedUserID", retweetedUserID);    //save retweeter userID
+                        document.put("created_at", at);                      //save retweet date
+                        
+                        retweetsColl.insert(document); //insert onto mongoDB retweet collection
                         //====================================================//
                         
                         //==== INSERT ORIGINAL USER INTO USERS COLLECTION ====//
-                        if(!checkIfUserExists(originalUserID, originalTweetID, at)){
-                            DBObject originalUserDB = (DBObject) jObj.getJSONObject("retweeted_status").getJSONObject("user"); //json user attribute of original user
-                            usersColl.insert(originalUserDB);   //insert original user on mongoDB
+                       
+                        //DBObject originalUserDB = (DBObject) jObj.getJSONObject("retweeted_status").getJSONObject("user"); //json user attribute of original user
+                        //usersColl.insert(originalUserDB);   //insert original user on mongoDB                        
+                        
+                        if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
+                            String userDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
+                            DBObject userToStore = (DBObject) JSON.parse(userDetails);       //creates a DBObject out of json for mongoDB
+                            usersColl.insert(userToStore);   //insert original user on mongoDB
                         }
+                        
                         //====================================================//
                         
                         //=== INSERT RETWEETED USER INTO USERS COLLECTION ====//
+                        //System.out.println("INSERT RETWEETED USER INTO USERS COLLECTION");
+                        //DBObject retweeterUserDB = (DBObject) jObj.getJSONObject("user"); //json user attribute of original user
+                        //usersColl.insert(retweeterUserDB);   //insert retweeter user on mongoDB 
+                        
                         //checkIfUserExists(retweetedUserID, originalTweetID, at);
                         //DBObject RTuserDB = (DBObject) jObj.getJSONObject("user"); //json user attribute of retweeted user
                         //usersColl.insert(RTuserDB);         //insert retweeted user on mongoDB
                         //====================================================//
                         
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
-                        if(!checkIfTweetIDExists(originalTweetID)){ //if tweetID doesnt exist
-                            JSONObject originalTweetJSON = jObj.getJSONObject("retweeted_status");
-
+                        //maybe a unique index on tweetID can be used in order to autoreject duplicates
+                        if(!users.checkIfTweetIDExists(originalTweetID)){ //if tweetID doesnt exist
+                            JSONObject test = jObj.getJSONObject("retweeted_status"); //get the original tweet details
+                            
                             //replace whole user json attribute, with just userID
-                            originalTweetJSON.remove("user");
-                            originalTweetJSON.put("user", originalUserID);
-                            DBObject originalTweetDB = (DBObject) originalTweetJSON;
-
-                            tweetsColl.insert(originalTweetDB); //insert original tweet on mongoDB    
+                            test.remove("user"); //remove current user attribute
+                            DBObject tweetToStore = (DBObject) JSON.parse(test.toString()); //creates a DBObject out of json for mongoDB
+                            tweetToStore.put("user_id", originalUserID); //put just id-str of user
+                            tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB   
                         }
                         //====================================================//
                         
@@ -207,61 +218,7 @@ public class Crawler extends TimerTask {
         stream.addListener(listener);
         stream.filter(fq);
     }
-
-    /**
-     * Creates a filter for getting the tweets with spam phrases from Twitter
-     * Streaming API
-     */
-//    private void crawlStreamWithFilter() {
-//
-//        stream = new TwitterStreamFactory(config).getInstance();
-//        stream.addListener(listener);
-//        stream.filter(fq);
-//    }
     
-    /**
-     * Checks if user exists or not and perform the proper actions.
-     * @param checkingID
-     * @param tweetID
-     * @param at
-     * @return true if user exists, false if doesnt exist.
-     */
-    public boolean checkIfUserExists(Long checkingID, Long tweetID, Date at){
-                
-        if(users.getUniqueUsers().contains(checkingID)){ //if user exists
-            
-            int pos = users.getUsersColl().indexOf(checkingID);
-            if(pos != -1){
-                users.getUsersColl().get(pos).update(tweetID, at);
-                System.out.println("Existing user of usersColl updated!" + " at pos: " + pos);
-            } else {
-                System.out.println("User doesnt exist! --> indexOf returned -1");
-            }
-            return true;
-            
-        } else { //if user doesnt exist
-            users.getUniqueUsers().add(checkingID);
-            users.getUsersColl().add(new TwitterUser(checkingID, tweetID, at));
-            //System.out.println("New user added to usersColl");
-            return false;
-        }
-    }
-    
-    
-    /**
-     * 
-     * @param checkingID
-     * @return 
-     */
-    public boolean checkIfTweetIDExists(Long checkingID){
-        if(users.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
-            return true;
-        } else {
-            users.getUniqueTweetIDs().add(checkingID);
-            return false;
-        }
-    }
-
     /**
      * 
      * @param date1

@@ -4,14 +4,11 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,14 +28,12 @@ public class RetweetObserver {
     private MongoClient mclient;
     private DB tweetsDB;
     private DBCollection tweetsColl;
-
     private Configuration config;
 
-    //private ArrayList<TwitterUser> usersColl;
+    //sets that handles the users occured from API
     private HashSet<Long> uniqueUsers; //used to check if a user has already occured in the database
     private HashSet<Long> uniqueTweetIDs;
     private CopyOnWriteArrayList<TwitterUser> usersColl;
-    //private ArrayList<TwitterUser> usersColl; //all users found in our database
     private HashSet<Long> highlyRTed; //users that have highly retweeted tweets
 
     /**
@@ -93,10 +88,6 @@ public class RetweetObserver {
     public HashSet<Long> getUniqueTweetIDs() {
         return uniqueTweetIDs;
     }
-
-//    public ArrayList<TwitterUser> getUsersColl() {
-//        return usersColl;
-//    }
     
     public CopyOnWriteArrayList<TwitterUser> getUsersColl() {
         return usersColl;
@@ -105,6 +96,62 @@ public class RetweetObserver {
     public HashSet<Long> getHighlyRTed() {
         return highlyRTed;
     }
+    
+        /**
+     * Checks if user exists or not and perform the proper actions.
+     * @param checkingID
+     * @param tweetID
+     * @param at
+     * @return true if user exists, false if doesnt exist.
+     */
+    public boolean checkIfUserExists(Long checkingID, Long tweetID, Date at){
+                
+        if(this.getUniqueUsers().contains(checkingID)){ //if user exists
+            
+            //int pos = this.getUsersColl().indexOf(checkingID);
+            int pos = 0;
+            for(TwitterUser user : this.getUsersColl()){
+                if (Objects.equals(user.getUserID(), checkingID)){
+                    break;
+                }
+                pos++;
+            }
+            
+            if(pos != -1){
+                this.getUsersColl().get(pos).update(tweetID, at);
+                //System.out.println("Existing user of usersColl updated!" + " at pos: " + pos);
+            } else {
+                //System.out.println("User doesnt exist! --> problem at identifying position");
+            }
+            return true;
+            
+        } else { //if user doesnt exist
+            this.getUniqueUsers().add(checkingID);
+            this.getUsersColl().add(new TwitterUser(checkingID, tweetID, at));
+            //System.out.println("New user added to usersColl");
+            return false;
+        }
+    }
+    
+    
+    /**
+     * 
+     * @param checkingID
+     * @return 
+     */
+    public boolean checkIfTweetIDExists(Long checkingID){
+        if(this.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
+            //System.out.println("tweet exists");
+            return true;
+        } else {
+            //System.out.println("tweet doesnt exist");
+            this.getUniqueTweetIDs().add(checkingID);
+            return false;
+        }
+    }
+    
+    
+    
 
     public void printAll() {
         for (TwitterUser user : usersColl) {
