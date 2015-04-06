@@ -29,17 +29,16 @@ import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
 
 /**
- * Crawls tweets from Streaming API.
- *
+ * Crawls random english tweets from Streaming API 
+ * and stores them in appropriate mongoDB collections.
+ * 
  * @author Sokratis Papadopoulos
  */
 public class Crawler extends TimerTask {
-
-    //private Twitter twitter;
     
-    // variables for handling nosql database Mongo
+    // variables for handling nosql database MongoDB
     private MongoClient mclient;
-    private DB tweetsDB;
+    private DB randomDB;
     private DBCollection tweetsColl; //all info of tweets except user{}, where we just store the id_str
     private DBCollection usersColl; //all user{} info of json
     private DBCollection retweetsColl; //id_str of two users, createdAt & tweetID of original
@@ -87,23 +86,45 @@ public class Crawler extends TimerTask {
     private void initializeMongo() {
         try {
             mclient = new MongoClient("localhost", 27017);
-            tweetsDB = mclient.getDB("twitter");
-            usersColl = tweetsDB.getCollection("users");
-            tweetsColl = tweetsDB.getCollection("tweets");
-            retweetsColl = tweetsDB.getCollection("retweets");
+            randomDB = mclient.getDB("random");
+            usersColl = randomDB.getCollection("users");
+            tweetsColl = randomDB.getCollection("tweets");
+            retweetsColl = randomDB.getCollection("retweets");
             
-            usersColl.createIndex(new BasicDBObject("id_str", 1));  // create index on "id_str", ascending | also prevent duplicates
-            tweetsColl.createIndex(new BasicDBObject("created_at", 1));  // create index on "created_at", ascending
-            tweetsColl.createIndex(new BasicDBObject("id", 1));  // create index on tweetID of the original tweets, ascending
-            retweetsColl.createIndex(new BasicDBObject("created_at", 1));  // create index on "id_str", ascending
-            
+            //createIndexes();
         } catch (UnknownHostException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    /**
+     * Creates the indexes used in mongoDB to fasten the queries
+     * TODO: Unique constraint doesn't work.
+     */
+    private void createIndexes(){
+                        
+        // create index on userIDs, ascending | prevents duplicates
+        usersColl.createIndex(new BasicDBObject("id_str", 1));
+
+        // create index on "creating times of original tweets, ascending
+        tweetsColl.createIndex(new BasicDBObject("created_at", 1));  
+
+        // create index on tweetID of the original tweets, ascending | prevents duplicates
+        tweetsColl.createIndex(new BasicDBObject("id", 1));  
+
+        // create index on "id_str", ascending
+        //retweetsColl.createIndex(new BasicDBObject("created_at", 1));  
+
+        //usersColl.ensureIndex(new BasicDBObject("url", 1), new BasicDBObject("unique", true));
+        //usersColl.ensureIndex(new BasicDBObject("id_str", 1), null, true);
+        //tweetsColl.createIndex(new BasicDBObject("retweet_count", 1), new BasicDBObject("unique", true));
+        //usersColl.ensureIndex(new BasicDBObject("id_str", 1));
+        //usersColl.createIndex(new BasicDBObject("id_str", 1).append("unique", true));  
+    }
 
     /**
-     * Listener that will connect to Streaming API and receive the tweet stream
+     * Listener that will connect to Streaming API and receive the tweet stream.
+     * Performs the storing to mongoDB collections for every retweet occured.
      */
     private void startListener() {
 
@@ -113,7 +134,6 @@ public class Crawler extends TimerTask {
             public void onStatus(Status status) { //streaming tweets (not necessarily retweets)
                 try {
 
-                    //User user = status.getRetweetedStatus().getUser();//user whose tweet was retweeted
                     String json = DataObjectFactory.getRawJSON(status); //gets the raw json form of tweet
                     
                     DBObject dbObj = (DBObject) JSON.parse(json);       //creates a DBObject out of json for mongoDB
@@ -122,58 +142,54 @@ public class Crawler extends TimerTask {
                     if (!jObj.getJSONObject("retweeted_status").getString("id_str").isEmpty()) { //FOUND A RETWEET
                         
                         //========== STORING INTO LOCAL VARIABLES ============//
+                        
                         Long originalUserID = status.getRetweetedStatus().getUser().getId(); //gets userID of original tweet
                         Long originalTweetID = status.getRetweetedStatus().getId(); //gets tweetID of original tweet
                         Long retweetedUserID = status.getUser().getId(); //gets the userID of retweeted user
                         Date at = status.getCreatedAt(); //gets date the retweet created (current)
+                        
                         //====================================================//
                         
                         //===== INSERT RETWEET INTO RETWEETS COLLECTION ======//
-                        //storing necessary details for every retweet occured (like log file of RTs)
-                        
+                        //storing necessary details for every retweet occured 
+                        //(like log file of RTs)
                         BasicDBObject document = new BasicDBObject();
-                        document.put("originalTweetID", originalTweetID);    //save original tweetID
-                        document.put("originalUserID", originalUserID);      //save original userID 
-                        document.put("retweetedUserID", retweetedUserID);    //save retweeter userID
-                        document.put("created_at", at);                      //save retweet date
+                        document.put("originalTweetID", originalTweetID); //save original tweetID
+                        document.put("originalUserID", originalUserID);   //save original userID 
+                        document.put("retweetedUserID", retweetedUserID); //save retweeter userID
+                        document.put("created_at", at);                   //save retweet date
                         
                         retweetsColl.insert(document); //insert onto mongoDB retweet collection
-                        //====================================================//
-                        
-                        //==== INSERT ORIGINAL USER INTO USERS COLLECTION ====//
-                       
-                        //DBObject originalUserDB = (DBObject) jObj.getJSONObject("retweeted_status").getJSONObject("user"); //json user attribute of original user
-                        //usersColl.insert(originalUserDB);   //insert original user on mongoDB                        
-                        
-                        if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
-                            String userDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
-                            DBObject userToStore = (DBObject) JSON.parse(userDetails);       //creates a DBObject out of json for mongoDB
-                            usersColl.insert(userToStore);   //insert original user on mongoDB
-                        }
                         
                         //====================================================//
                         
-                        //=== INSERT RETWEETED USER INTO USERS COLLECTION ====//
-                        //System.out.println("INSERT RETWEETED USER INTO USERS COLLECTION");
-                        //DBObject retweeterUserDB = (DBObject) jObj.getJSONObject("user"); //json user attribute of original user
-                        //usersColl.insert(retweeterUserDB);   //insert retweeter user on mongoDB 
+                        //==== INSERT USERS INTO USERS COLLECTION ============//
+                        //original users
                         
-                        //checkIfUserExists(retweetedUserID, originalTweetID, at);
-                        //DBObject RTuserDB = (DBObject) jObj.getJSONObject("user"); //json user attribute of retweeted user
-                        //usersColl.insert(RTuserDB);         //insert retweeted user on mongoDB
+                        //if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
+                            String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
+                            DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails);       //creates a DBObject out of json for mongoDB
+                            usersColl.insert(originalUserToStore);   //insert original user on mongoDB
+
+                            users.updateListOfUsers(originalUserID, originalTweetID, at);
+                        //}
+                        
+                        //retweeter users
+                        String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
+                        DBObject retweeterUserToStore = (DBObject) JSON.parse(retweeterUserDetails);       //creates a DBObject out of json for mongoDB
+                        usersColl.insert(retweeterUserToStore);   //insert original user on mongoDB
+                        
                         //====================================================//
-                        
+                                                
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
-                        //maybe a unique index on tweetID can be used in order to autoreject duplicates
-                        if(!users.checkIfTweetIDExists(originalTweetID)){ //if tweetID doesnt exist
-                            JSONObject test = jObj.getJSONObject("retweeted_status"); //get the original tweet details
-                            
-                            //replace whole user json attribute, with just userID
-                            test.remove("user"); //remove current user attribute
-                            DBObject tweetToStore = (DBObject) JSON.parse(test.toString()); //creates a DBObject out of json for mongoDB
-                            tweetToStore.put("user_id", originalUserID); //put just id-str of user
-                            tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB   
-                        }
+                        //if(!users.checkIfTweetIDExists(originalTweetID)){
+                            JSONObject tweetDetails = jObj.getJSONObject("retweeted_status"); 
+                            tweetDetails.remove("user"); 
+                            DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
+                            tweetToStore.put("user_id", originalUserID); //put just id_str of original user
+                            tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
+                        //}
+                        
                         //====================================================//
                         
                     }
@@ -220,6 +236,7 @@ public class Crawler extends TimerTask {
     }
     
     /**
+     * Computes the time difference between two dates
      * 
      * @param date1
      * @param date2
@@ -232,6 +249,9 @@ public class Crawler extends TimerTask {
     }
 
     /**
+     * Runs every hour and checks for highlyRTed users to follow.
+     * The list is being updated every time and so does the query to the
+     * Steaming API with the wanted users.
      * 
      */
     @Override
@@ -249,7 +269,8 @@ public class Crawler extends TimerTask {
                     Date currentTime = new Date();
                     dateFormat.format(currentTime);
 
-                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 7 && fuser.getRetweetsReceived() > 20) {
+                    //if the last retweet occured less than 7 days ago and the user has received more than 20 retweets in a tweet
+                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
                         users.getHighlyRTed().add(fuser.getUserID());
                     } else {
                         users.getHighlyRTed().remove(fuser.getUserID());
@@ -259,30 +280,26 @@ public class Crawler extends TimerTask {
                 }
             }
 
-            //System.out.println("--------------- printing highly RTed! ---------------------");
-//            for (Long id : users.getHighlyRTed()) {
-//                System.out.println(id);
-//            }
-
-            //System.out.println("------------------------------------------------------------");
+            
 
             if (users.getHighlyRTed() != null) {
                 
                 if (trackingUsers == null) { //first time list for users
-                    if(users.getHighlyRTed().size() >1){
+                    if(users.getHighlyRTed().size() >0){
                         trackingUsers = new UserTracker(users.getHighlyRTed());
                     }
                 } else { //update existing list of users
                     System.out.println("><><>< Update List");
                     trackingUsers.update(users.getHighlyRTed());
-                    for (Long id : users.getHighlyRTed()) {
-                        System.out.println(id);
-                    }
                 }
             }
+            
+            System.out.println("--------------- printing highly RTed! ---------------------");
+            for (Long id : users.getHighlyRTed()) { System.out.println(id); }
+            System.out.println("------------------------------------------------------------");
 
         } else {
-            //System.out.println("List of highly retweeted users currently empty");
+            System.out.println("List of highly retweeted users currently empty");
         }
     }
 }

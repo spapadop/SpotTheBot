@@ -1,5 +1,6 @@
 package spotthebot;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -32,9 +33,11 @@ public class UserTracker {
 
     // variables for handling nosql database Mongo
     private MongoClient mclient;
-    private DB tweetsDB, trackedTweetsDB;
-    private DBCollection tweetsColl, usersColl, retweetsColl, trackedTweetsColl;
-
+    private DB randomDB, followedDB;
+    private DBCollection tweetsColl, usersColl, retweetsColl;
+    private DBCollection tweetsByUsersColl, followedUsersColl, tweetsRetweetedByUsersColl, repliesToUsersTweetsColl, retweetsOfUsersTweetsColl, repliesByUsersColl;
+    private DBCollection followedResultsColl;
+    
     // variables for handling twitter Streaming API
     private TwitterStream stream;
     private StatusListener listener;
@@ -90,18 +93,46 @@ public class UserTracker {
     private void initializeMongo() {
         try {
             mclient = new MongoClient("localhost", 27017);
-            tweetsDB = mclient.getDB("twitter");
-            usersColl = tweetsDB.createCollection("users", null);
-            tweetsColl = tweetsDB.createCollection("tweets", null);
-            retweetsColl = tweetsDB.createCollection("retweets", null);
-
-            //gets the followed users collection from mongodb
-            trackedTweetsDB = mclient.getDB("trackedUsers");
-            trackedTweetsColl = trackedTweetsDB.createCollection("trackedData", null);
+            randomDB = mclient.getDB("random");
+            usersColl = randomDB.getCollection("users");
+            tweetsColl = randomDB.getCollection("tweets");
+            retweetsColl = randomDB.getCollection("retweets");
+            
+            followedDB = mclient.getDB("followed");
+            followedResultsColl = followedDB.getCollection("results"); //all things returned by API
+            //followedUsersColl = followedDB.getCollection("users"); //users that were followed
+            //tweetsByUsersColl = followedDB.getCollection("tweets"); //tweets created by followed users
+            //tweetsRetweetedByUsersColl = followedDB.getCollection("retweets"); //tweets that were RTed by followed users
+            //repliesToUsersTweetsColl = followedDB.getCollection("replies"); //replies to any tweet created by followed users
+            //retweetsOfUsersTweetsColl = followedDB.getCollection("retweetsToUsersTweets"); //retweets of any tweet created by followed users
+            //repliesByUsersColl = followedDB.getCollection("repliesByUsers"); //manual replies, created by followed users
+            
+            //createIndexes();
 
         } catch (UnknownHostException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+    /**
+     * Creates the indexes used in mongoDB to fasten the queries
+     * TODO: Unique constraint doesn't work.
+     */
+    private void createIndexes(){
+                        
+        // create index on userIDs, ascending | prevents duplicates
+        BasicDBObject query = new BasicDBObject("id_str", 1).append("unique", "true");
+        usersColl.createIndex(query);
+
+        // create index on "creating times of original tweets, ascending
+        tweetsColl.createIndex(new BasicDBObject("created_at", 1));  
+
+        // create index on tweetID of the original tweets, ascending | prevents duplicates
+        tweetsColl.createIndex(new BasicDBObject("id", 1).append("unique", true));  
+
+        // create index on "id_str", ascending
+        //retweetsColl.createIndex(new BasicDBObject("created_at", 1));      
+        
     }
     
     public void update (HashSet<Long> newcomers){
@@ -137,21 +168,10 @@ public class UserTracker {
                 if(highlyRTed!= null){
                     //System.out.println("exoume lista energi");
                     //System.out.println(highlyRTed.size());
-//                    for (Long fuserID : highlyRTed) {
-//                        System.out.println("to id tou trexontos user tweet: " +id);
-//                        if (Objects.equals(id, fuserID)) {
-//                            System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Found a tweet from a tracked user!");
-//                            System.out.println("userID: " + fuserID);
-//                            flag = true;
-//                            break;
-//                        }
-//                    }
-//                    if (flag) {
+
                     String json = DataObjectFactory.getRawJSON(status);
-                    //System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Taking the JSON form of a tweet from tracked user!");
                     DBObject jsonObj = (DBObject) JSON.parse(json);
-                    trackedTweetsColl.insert(jsonObj);
-//                    }
+                    followedResultsColl.insert(jsonObj);
                 }
             }
 

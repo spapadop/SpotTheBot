@@ -97,7 +97,7 @@ public class RetweetObserver {
         return highlyRTed;
     }
     
-        /**
+    /**
      * Checks if user exists or not and perform the proper actions.
      * @param checkingID
      * @param tweetID
@@ -108,7 +108,6 @@ public class RetweetObserver {
                 
         if(this.getUniqueUsers().contains(checkingID)){ //if user exists
             
-            //int pos = this.getUsersColl().indexOf(checkingID);
             int pos = 0;
             for(TwitterUser user : this.getUsersColl()){
                 if (Objects.equals(user.getUserID(), checkingID)){
@@ -133,7 +132,33 @@ public class RetweetObserver {
         }
     }
     
-    
+    /**
+     * 
+     * @param checkingID
+     * @param tweetID
+     * @param at 
+     */
+    public void updateListOfUsers(Long checkingID, Long tweetID, Date at){
+                
+        int pos = 0;
+        boolean flag = false;
+        for(TwitterUser user : usersColl){
+            if (Objects.equals(user.getUserID(), checkingID)){
+                flag = true;
+                break;
+            }
+            pos++;
+        }
+
+        if(flag){
+            usersColl.get(pos).update(tweetID, at);
+            //System.out.println("Existing user of usersColl updated!" + " at pos: " + pos);
+        } else {
+            usersColl.add(new TwitterUser(checkingID, tweetID, at));
+            //System.out.println("User doesnt exist! --> problem at identifying position");
+        }
+    }
+        
     /**
      * 
      * @param checkingID
@@ -150,9 +175,6 @@ public class RetweetObserver {
         }
     }
     
-    
-    
-
     public void printAll() {
         for (TwitterUser user : usersColl) {
             
@@ -171,43 +193,4 @@ public class RetweetObserver {
             }
         }
     }
-
 }
-
-
-
-
-
-
-   /*
-    private void calculateRTs() throws JSONException{
-        DBCursor cursor = tweetsColl.find(); //get a cursor that will run throughout the collection.
-        
-        //starts the loop throughout the collection of tweets
-        while(cursor.hasNext()){
-            DBObject obj = cursor.next();  
-            JSONObject jobj=new JSONObject(obj.toString());
-            //TwitterUser user = new TwitterUser(); //at the end create the TwitterUser
-            int pos=0;
-            
-            String userID= jobj.getJSONObject("user").getString("id_str"); //gets the userID
-            
-            if(uniqueUsers.containsKey(userID)){ //if user exists already in our ArrayList usersColl
-                usersColl.get(uniqueUsers.get(userID)).increaseTweets();
-            }else{
-                uniqueUsers.put(userID, pos);
-                pos++;
-                //usersColl.add(new TwitterUser(userID, 1));
-            }
-                      
-                    
-            uniqueUsers.get(userID);
-            //TODO: find highly RTed tweets.
-            // and add them to highlyRTed list
-            
-            if(jobj.has("retweeted_status")){
-                //user.increaseRetweets();
-            }
-        }
-    }
-    */
