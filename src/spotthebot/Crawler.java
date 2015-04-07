@@ -166,13 +166,13 @@ public class Crawler extends TimerTask {
                         //==== INSERT USERS INTO USERS COLLECTION ============//
                         //original users
                         
-                        //if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
+                        if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
                             String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
                             DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails);       //creates a DBObject out of json for mongoDB
                             usersColl.insert(originalUserToStore);   //insert original user on mongoDB
 
                             users.updateListOfUsers(originalUserID, originalTweetID, at);
-                        //}
+                        }
                         
                         //retweeter users
                         String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
@@ -182,13 +182,13 @@ public class Crawler extends TimerTask {
                         //====================================================//
                                                 
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
-                        //if(!users.checkIfTweetIDExists(originalTweetID)){
+                        if(!users.checkIfTweetIDExists(originalTweetID)){
                             JSONObject tweetDetails = jObj.getJSONObject("retweeted_status"); 
                             tweetDetails.remove("user"); 
                             DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
                             tweetToStore.put("user_id", originalUserID); //put just id_str of original user
                             tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
-                        //}
+                        }
                         
                         //====================================================//
                         
@@ -269,7 +269,7 @@ public class Crawler extends TimerTask {
                     Date currentTime = new Date();
                     dateFormat.format(currentTime);
 
-                    //if the last retweet occured less than 7 days ago and the user has received more than 20 retweets in a tweet
+                    //if the last retweet occured less than 5 days ago and the user has received more than 20 retweets in a tweet
                     if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
                         users.getHighlyRTed().add(fuser.getUserID());
                     } else {
@@ -278,9 +278,7 @@ public class Crawler extends TimerTask {
                 } catch (ParseException ex) {
                     Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            }
-
-            
+            }            
 
             if (users.getHighlyRTed() != null) {
                 

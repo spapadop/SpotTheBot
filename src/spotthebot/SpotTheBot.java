@@ -18,7 +18,7 @@ public class SpotTheBot {
 
         //create task to be executed every 10 minutes
         Timer time = new Timer(); 
-        time.schedule(crawl, 0, 600000); //600.000 milliseconds = 10 minutes
+        time.schedule(crawl, 0, 60000); //600.000 milliseconds = 10 minutes
 
     }
 }

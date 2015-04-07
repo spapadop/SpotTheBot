@@ -7,9 +7,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.ConnectionLifeCycleListener;
@@ -26,8 +24,10 @@ import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
 
 /**
- *
- * @author Sokratis
+ * Crawling the activity of specific followed users list.
+ * The list is being updated at specific times.
+ * 
+ * @author Sokratis Papadopoulos
  */
 public class UserTracker {
 
@@ -52,7 +52,6 @@ public class UserTracker {
         configuration();
         initializeMongo();
         startListener();
-        //startFiltering();
     }
     
     /**
@@ -60,13 +59,11 @@ public class UserTracker {
      * @param highlyRTed 
      */
     public UserTracker(HashSet<Long> highlyRTed) {
-//         this.highlyRTed = new HashSet<>();
         this.highlyRTed = highlyRTed;
         fq = new FilterQuery();
         configuration();
         initializeMongo();
         startListener();
-        //startFiltering();
     }
 
     /**
@@ -135,43 +132,37 @@ public class UserTracker {
         
     }
     
+    /**
+     * Shutdowns the previous query to API, updates the following list and
+     * starts over the query with the renewed list.
+     * 
+     * @param newcomers 
+     */
     public void update (HashSet<Long> newcomers){
         stream.shutdown();
         this.highlyRTed = newcomers;
         this.startListener();
     }
     
-//    
-//    public void renewList(HashSet<Long> newcomers){
-//        if(highlyRTed!=null){
-//            highlyRTed.clear();
-//            highlyRTed = newcomers;
-//        } else {
-//            highlyRTed = newcomers;
-//        }
-//        startFiltering();
-//    }
-
-    
     /**
-     *
+     *Receives all information about the list of following users.
+     * Stores that information at different collections in mongoDB.
      */
-    public void startListener() {
-        //System.out.println("Starts listener for tracking users");
+    public void startListener() { //System.out.println("Starts listener for tracking users");
+        
         listener = new StatusListener() {
 
             @Override
             public void onStatus(Status status) {
                 User user = status.getUser();
                 Long id = user.getId();
-                boolean flag = false;
+                
                 if(highlyRTed!= null){
-                    //System.out.println("exoume lista energi");
-                    //System.out.println(highlyRTed.size());
 
                     String json = DataObjectFactory.getRawJSON(status);
                     DBObject jsonObj = (DBObject) JSON.parse(json);
                     followedResultsColl.insert(jsonObj);
+                    
                 }
             }
 
@@ -202,57 +193,41 @@ public class UserTracker {
         };
         
         if(highlyRTed!=null){
-            //stopStreaming();
-            
-            long userIDs[] = new long[highlyRTed.size()];
-            int i = 0;
-            for (Long id : highlyRTed) {
-                userIDs[i++] = id;
-            }
-            if(userIDs.length>0){
-                
-                //print all userIDs that are going to be followed
-//                for (int j=0; j<userIDs.length; j++) {
-//                    System.out.println(userIDs[j]);
-//                }
-                
-                fq.follow(userIDs); // follow users' activity
-
-                stream = new TwitterStreamFactory(config).getInstance();
-                stream.addListener(listener);
-                stream.filter(fq);
-            }
+            addFilter();
         }
     }
-
+    
     /**
-     * TODO the filter query
-     *
-     * @param listener
+     * Prepares the appropriate users list to follow their activity.
+     * Performs the query in Streaming API.
      */
-    private void startFiltering() {
-        
-        System.out.println("Start Filtering:");
+    private void addFilter(){
         
         long userIDs[] = new long[highlyRTed.size()];
         int i = 0;
+        
         for (Long id : highlyRTed) {
             userIDs[i++] = id;
         }
         
-        for (int j=0; j<userIDs.length; j++) {
-            System.out.println(userIDs[j]);
+        if(userIDs.length>0){
+
+            fq.follow(userIDs); // follow users' activity
+
+            stream = new TwitterStreamFactory(config).getInstance();
+            stream.addListener(listener);
+            stream.filter(fq);
+            
+//          //print all userIDs that are going to be followed
+//          for (int j=0; j<userIDs.length; j++) {
+//              System.out.println(userIDs[j]);
+//          }
         }
-
-        fq.follow(userIDs);
-
-        stream = new TwitterStreamFactory(config).getInstance();
-        stream.addListener(listener);
-        stream.filter(fq);
     }
     
     /**
-     * Shut downs the crawling.
+     * Shut downs the crawling for current list of followed users.
+     * alternative if simple shutdown dont work.
      */
     private void stopStreaming() {
 
@@ -288,7 +263,7 @@ public class UserTracker {
             }
         }
         if (stream == null) {
-            System.out.println("$$$$$$$$$$$$$$$ Stream Stopped");
+            System.out.println("Stream Stopped");
         }
     }
 }

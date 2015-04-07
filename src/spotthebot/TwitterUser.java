@@ -8,7 +8,7 @@ import java.util.HashMap;
  * It stores userID, the number of retweets he received, the date when he 
  * was lastly retweeted and the number of retweets he got per tweet he did.
  * 
- * @author Sokratis
+ * @author Sokratis Papadopoulos
  */
 public class TwitterUser {
 

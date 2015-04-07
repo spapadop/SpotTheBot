@@ -36,9 +36,7 @@ public class RetweetObserver {
     private CopyOnWriteArrayList<TwitterUser> usersColl;
     private HashSet<Long> highlyRTed; //users that have highly retweeted tweets
 
-    /**
-     *
-     */
+    
     public RetweetObserver() throws JSONException {
         //initializing the lists
         //usersColl = new ArrayList<>();
@@ -54,7 +52,7 @@ public class RetweetObserver {
 
     /**
      * The configuration details of our application as developer mode of Twitter
-     * API
+     * API.
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -70,6 +68,7 @@ public class RetweetObserver {
      * Initializing the attributes of MongoDB. First I create a MongoClient
      * object (mclient) and then the database (tweets) and the collection in it
      * (tweetsColl).
+     * 
      */
     private void initializeMongo() {
         try {
@@ -99,6 +98,7 @@ public class RetweetObserver {
     
     /**
      * Checks if user exists or not and perform the proper actions.
+     * 
      * @param checkingID
      * @param tweetID
      * @param at
@@ -133,6 +133,8 @@ public class RetweetObserver {
     }
     
     /**
+     * Inserts the upcoming information into the current databases.
+     * It receives a retweet and it updates the appropriate values.
      * 
      * @param checkingID
      * @param tweetID
@@ -160,9 +162,12 @@ public class RetweetObserver {
     }
         
     /**
+     * Checks if tweetID has already occurred in our database.
+     * If so, it returns true, else it returns false, after entering the new
+     * tweetID to the uniqueTweetIDs list.
      * 
      * @param checkingID
-     * @return 
+     * @return true if found, false if not found.
      */
     public boolean checkIfTweetIDExists(Long checkingID){
         if(this.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
@@ -175,7 +180,12 @@ public class RetweetObserver {
         }
     }
     
+    /**
+     * Prints all users with their info, that occurred in our database.
+     * 
+     */
     public void printAll() {
+        
         for (TwitterUser user : usersColl) {
             
             if(user.getRetweetsReceived() > 5){
@@ -189,6 +199,7 @@ public class RetweetObserver {
                     Map.Entry pair = (Map.Entry) it.next();
                     System.out.println(pair.getKey() + " = " + pair.getValue());
                 }
+                
                 //System.out.println("---------------------");
             }
         }
