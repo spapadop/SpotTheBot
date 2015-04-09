@@ -133,6 +133,25 @@ public class RetweetObserver {
     }
     
     /**
+     * Checks if tweetID has already occurred in our database.
+     * If so, it returns true, else it returns false, after entering the new
+     * tweetID to the uniqueTweetIDs list.
+     * 
+     * @param checkingID
+     * @return true if found, false if not found.
+     */
+    public boolean checkIfTweetIDExists(Long checkingID){
+        if(this.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
+            //System.out.println("tweet exists");
+            return true;
+        } else {
+            //System.out.println("tweet doesnt exist");
+            this.getUniqueTweetIDs().add(checkingID);
+            return false;
+        }
+    }
+    
+    /**
      * Inserts the upcoming information into the current databases.
      * It receives a retweet and it updates the appropriate values.
      * 
@@ -161,24 +180,7 @@ public class RetweetObserver {
         }
     }
         
-    /**
-     * Checks if tweetID has already occurred in our database.
-     * If so, it returns true, else it returns false, after entering the new
-     * tweetID to the uniqueTweetIDs list.
-     * 
-     * @param checkingID
-     * @return true if found, false if not found.
-     */
-    public boolean checkIfTweetIDExists(Long checkingID){
-        if(this.getUniqueTweetIDs().contains(checkingID)){ //if tweet exists
-            //System.out.println("tweet exists");
-            return true;
-        } else {
-            //System.out.println("tweet doesnt exist");
-            this.getUniqueTweetIDs().add(checkingID);
-            return false;
-        }
-    }
+    
     
     /**
      * Prints all users with their info, that occurred in our database.

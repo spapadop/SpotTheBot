@@ -3,14 +3,17 @@ package spotthebot;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -184,7 +187,7 @@ public class Crawler extends TimerTask {
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
                         if(!users.checkIfTweetIDExists(originalTweetID)){
                             JSONObject tweetDetails = jObj.getJSONObject("retweeted_status"); 
-                            tweetDetails.remove("user"); 
+                            tweetDetails.remove("user");
                             DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
                             tweetToStore.put("user_id", originalUserID); //put just id_str of original user
                             tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
@@ -236,7 +239,7 @@ public class Crawler extends TimerTask {
     }
     
     /**
-     * Computes the time difference between two dates
+     * Computes the time difference between two dates.
      * 
      * @param date1
      * @param date2
@@ -261,43 +264,85 @@ public class Crawler extends TimerTask {
         //users.printAll();
         if (!users.getUsersColl().isEmpty()) {
 
-            for (TwitterUser fuser : users.getUsersColl()) {
-                try {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
-                    Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
-
-                    Date currentTime = new Date();
-                    dateFormat.format(currentTime);
-
-                    //if the last retweet occured less than 5 days ago and the user has received more than 20 retweets in a tweet
-                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
-                        users.getHighlyRTed().add(fuser.getUserID());
-                    } else {
-                        users.getHighlyRTed().remove(fuser.getUserID());
-                    }
-                } catch (ParseException ex) {
-                    Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+            //loop over every user occured
+            for (TwitterUser fuser : users.getUsersColl()) { 
+                System.out.println("userID: " + fuser.getUserID());
+                
+                BasicDBObject userQuery = new BasicDBObject("id", fuser.getUserID());
+                DBObject userDetails = usersColl.findOne(userQuery);
+                boolean userDetailsPassed = fuser.checkUserDetails(userDetails);              
+                               
+                if(userDetailsPassed){
+                    //user's tweets details
+                    System.out.println("UserDetails was true!");
+//                    ArrayList<DBObject> fetchedTweets = new ArrayList<>(); //list that will store his tweets details
+//                    for (Map.Entry<Long, Integer> entry : fuser.getTimesRetweeted().entrySet()) {
+//                        System.out.println("tweetID:" + entry.getKey() + ", timesRTed:" + entry.getValue());
+//                    }
+//
+//                    //maybe we can also use the tweetIDs for queries
+//                    BasicDBObject tweetsQuery = new BasicDBObject("user_id", fuser.getUserID());
+//                    DBCursor cursor = tweetsColl.find(tweetsQuery);
+//
+//                    try {
+//                        while (cursor.hasNext()) {
+//                            fetchedTweets.add(cursor.next());
+//                        }
+//                    } finally {
+//                        cursor.close();
+//                    }
+//
+//                    for (DBObject tweet : fetchedTweets) {
+//                        System.out.println("tweetID: " +tweet.get("id") + " created_at: " +tweet.get("created_at"));
+//                    }
+//
+//                    fuser.checkTweetsDetails(fetchedTweets);                
                 }
+                
+                
+                //highly retweeted
+//                try {
+//                    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
+//                    Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
+//
+//                    Date currentTime = new Date();
+//                    dateFormat.format(currentTime);
+//
+//                    //if the last retweet occured less than 5 days ago and the user has received more than 20 retweets in a tweet
+//                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
+//                        users.getHighlyRTed().add(fuser.getUserID());
+//                    } else {
+//                        users.getHighlyRTed().remove(fuser.getUserID());
+//                    }
+//                } catch (ParseException ex) {
+//                    Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+                
+                
+                
+
             }            
 
-            if (users.getHighlyRTed() != null) {
-                
-                if (trackingUsers == null) { //first time list for users
-                    if(users.getHighlyRTed().size() >0){
-                        trackingUsers = new UserTracker(users.getHighlyRTed());
-                    }
-                } else { //update existing list of users
-                    System.out.println("><><>< Update List");
-                    trackingUsers.update(users.getHighlyRTed());
-                }
-            }
+//            if (users.getHighlyRTed() != null) {
+//                
+//                if (trackingUsers == null) { //first time list for users
+//                    if(users.getHighlyRTed().size() >0){
+//                        trackingUsers = new UserTracker(users.getHighlyRTed());
+//                    }
+//                } else { //update existing list of users
+//                    System.out.println("><><>< Update List");
+//                    trackingUsers.update(users.getHighlyRTed());
+//                }
+//            }
+                  
             
-            System.out.println("--------------- printing highly RTed! ---------------------");
-            for (Long id : users.getHighlyRTed()) { System.out.println(id); }
-            System.out.println("------------------------------------------------------------");
+            
+//            System.out.println("--------------- printing highly RTed! ---------------------");
+//            for (Long id : users.getHighlyRTed()) { System.out.println(id); }
+//            System.out.println("------------------------------------------------------------");
 
         } else {
-            System.out.println("List of highly retweeted users currently empty");
+            System.out.println("List of users currently empty");
         }
     }
 }
