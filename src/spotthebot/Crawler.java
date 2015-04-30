@@ -1,11 +1,9 @@
 package spotthebot;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -40,11 +38,7 @@ import twitter4j.json.DataObjectFactory;
 public class Crawler extends TimerTask {
     
     // variables for handling nosql database MongoDB
-    private MongoClient mclient;
-    private DB randomDB;
-    private DBCollection tweetsColl; //all info of tweets except user{}, where we just store the id_str
-    private DBCollection usersColl; //all user{} info of json
-    private DBCollection retweetsColl; //id_str of two users, createdAt & tweetID of original
+    private MongoDBHandler mongo;
 
     // variables for handling twitter Streaming API
     private TwitterStream stream;
@@ -55,18 +49,24 @@ public class Crawler extends TimerTask {
     private RetweetObserver users;
     private UserTracker trackingUsers;
 
-    public Crawler() throws JSONException {
-        
+    /**
+     * Initializes a crawler object. 
+     * Initializes basic variables and establishes connections
+     * 
+     * @throws JSONException
+     * @throws MongoException
+     * @throws UnknownHostException 
+     */
+    public Crawler() throws JSONException, MongoException, UnknownHostException {
         users = new RetweetObserver();
         trackingUsers = null;
         configuration(); //configures my application as developer mode
-        initializeMongo(); //creates the database and collection in mongoDB
+        mongo = new MongoDBHandler(); //creates the database and collection in mongoDB
         startListener(); //listener to Streaming API that will get the tweets
     }
 
     /**
-     * The configuration details of our application as developer mode of Twitter
-     * API
+     * The configuration details of our application as developer mode of TwitterAPI
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -82,50 +82,6 @@ public class Crawler extends TimerTask {
     }
 
     /**
-     * Initializing the attributes of MongoDB. First I create a MongoClient
-     * object (mclient) and then the database (tweets) and the collection in it
-     * (tweetsColl).
-     */
-    private void initializeMongo() {
-        try {
-            mclient = new MongoClient("localhost", 27017);
-            randomDB = mclient.getDB("random");
-            usersColl = randomDB.getCollection("users");
-            tweetsColl = randomDB.getCollection("tweets");
-            retweetsColl = randomDB.getCollection("retweets");
-            
-            //createIndexes();
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    /**
-     * Creates the indexes used in mongoDB to fasten the queries
-     * TODO: Unique constraint doesn't work.
-     */
-    private void createIndexes(){
-                        
-        // create index on userIDs, ascending | prevents duplicates
-        usersColl.createIndex(new BasicDBObject("id_str", 1));
-
-        // create index on "creating times of original tweets, ascending
-        tweetsColl.createIndex(new BasicDBObject("created_at", 1));  
-
-        // create index on tweetID of the original tweets, ascending | prevents duplicates
-        tweetsColl.createIndex(new BasicDBObject("id", 1));  
-
-        // create index on "id_str", ascending
-        //retweetsColl.createIndex(new BasicDBObject("created_at", 1));  
-
-        //usersColl.ensureIndex(new BasicDBObject("url", 1), new BasicDBObject("unique", true));
-        //usersColl.ensureIndex(new BasicDBObject("id_str", 1), null, true);
-        //tweetsColl.createIndex(new BasicDBObject("retweet_count", 1), new BasicDBObject("unique", true));
-        //usersColl.ensureIndex(new BasicDBObject("id_str", 1));
-        //usersColl.createIndex(new BasicDBObject("id_str", 1).append("unique", true));  
-    }
-
-    /**
      * Listener that will connect to Streaming API and receive the tweet stream.
      * Performs the storing to mongoDB collections for every retweet occured.
      */
@@ -136,7 +92,6 @@ public class Crawler extends TimerTask {
             @Override
             public void onStatus(Status status) { //streaming tweets (not necessarily retweets)
                 try {
-
                     String json = DataObjectFactory.getRawJSON(status); //gets the raw json form of tweet
                     
                     DBObject dbObj = (DBObject) JSON.parse(json);       //creates a DBObject out of json for mongoDB
@@ -162,17 +117,17 @@ public class Crawler extends TimerTask {
                         document.put("retweetedUserID", retweetedUserID); //save retweeter userID
                         document.put("created_at", at);                   //save retweet date
                         
-                        retweetsColl.insert(document); //insert onto mongoDB retweet collection
+                        mongo.addObjectToRetweetsColl(document); //insert onto mongoDB retweet collection
                         
                         //====================================================//
                         
                         //==== INSERT USERS INTO USERS COLLECTION ============//
-                        //original users
                         
+                        //original users                        
                         if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
                             String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
                             DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails);       //creates a DBObject out of json for mongoDB
-                            usersColl.insert(originalUserToStore);   //insert original user on mongoDB
+                            mongo.addObjectToUsersColl(originalUserToStore);
 
                             users.updateListOfUsers(originalUserID, originalTweetID, at);
                         }
@@ -180,7 +135,7 @@ public class Crawler extends TimerTask {
                         //retweeter users
                         String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
                         DBObject retweeterUserToStore = (DBObject) JSON.parse(retweeterUserDetails);       //creates a DBObject out of json for mongoDB
-                        usersColl.insert(retweeterUserToStore);   //insert original user on mongoDB
+                        mongo.addObjectToUsersColl(retweeterUserToStore); //insert retweeter user on mongoDB
                         
                         //====================================================//
                                                 
@@ -190,13 +145,12 @@ public class Crawler extends TimerTask {
                             tweetDetails.remove("user");
                             DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
                             tweetToStore.put("user_id", originalUserID); //put just id_str of original user
-                            tweetsColl.insert(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
+ /*!!!!! DATE !!!!!!!!*/    //Date originalTweetDate = status.getRetweetedStatus().getCreatedAt(); //takes the date of original tweet
+                            mongo.addObjectToTweetsColl(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
                         }
                         
                         //====================================================//
-                        
                     }
-
                 } catch (JSONException ex) {
                     // Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -244,7 +198,7 @@ public class Crawler extends TimerTask {
      * @param date1
      * @param date2
      * @param timeUnit
-     * @return 
+     * @return the time difference between dates
      */
     public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
         long diffInMillies = date2.getTime() - date1.getTime();
@@ -269,7 +223,7 @@ public class Crawler extends TimerTask {
                 System.out.println("userID: " + fuser.getUserID());
                 
                 BasicDBObject userQuery = new BasicDBObject("id", fuser.getUserID());
-                DBObject userDetails = usersColl.findOne(userQuery);
+                DBObject userDetails = mongo.getUsersColl().findOne(userQuery);
                 boolean userDetailsPassed = fuser.checkUserDetails(userDetails);              
                                
                 if(userDetailsPassed){

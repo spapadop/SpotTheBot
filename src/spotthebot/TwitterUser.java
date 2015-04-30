@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -130,9 +131,9 @@ public class TwitterUser {
         //TODO: "screen_name": @sokpapadop
         //********************************
          
-        switch(PACKAGE){
+        switch(PACKAGE){ //checking in which variables package test we are.
             case 1: 
-                return ((!verified) && (ratio > 1.4) && (accountAge < 1000) && (favourites <10));
+                return true;    //((!verified) && (ratio > 1.4) && (accountAge < 1000) && (favourites <10));
             case 2:
                 return false;
             case 3:
@@ -157,7 +158,6 @@ public class TwitterUser {
         }
         return true;
     }
-    
         
     /**
      * 
@@ -203,7 +203,7 @@ public class TwitterUser {
     }
     
     /**
-     * 
+     * TODO: work on this function. Checking some variables regarding tweets
      * @param tweets
      * @return 
      */
@@ -214,6 +214,13 @@ public class TwitterUser {
             int[] hashtags = new int[tweets.size()];
             int[] urls = new int[tweets.size()];
             int replies=0, i=0;
+            
+            //TODO: WORK ON THESE!!!
+            double urlRatio;
+            HashSet<String> uniqueDomains;
+            int numberOfUniqueDomains; //facebook.com, twitter.com, youtube.com....
+            HashSet<String> uniqueURLs;
+            double domainRatio;
             
             HashMap<String, Integer> tweetsPerSource = new HashMap<>();
             
@@ -227,6 +234,15 @@ public class TwitterUser {
                     }
                     //======= GETTING SOURCE =======
                     String source = tweet.get("source").toString();
+                    org.jsoup.nodes.Document doc = Jsoup.parse(source);
+                    Element link = doc.select("a").first();
+                    String sourceName = link.text();            
+
+                    if (tweetsPerSource.containsKey(sourceName)) {
+                        tweetsPerSource.put(sourceName, tweetsPerSource.get(sourceName) + 1);
+                    } else {
+                        tweetsPerSource.put(sourceName, 1);
+                    }
                     
                     JSONObject entities = jobj.getJSONObject("entities"); //getting inside "entities" in json
                     
@@ -251,16 +267,6 @@ public class TwitterUser {
                         }
                     }
                     
-                    org.jsoup.nodes.Document doc = Jsoup.parse(source);
-                    Element link = doc.select("a").first();
-                    String sourceName = link.text(); // "example""            
-
-                    if (tweetsPerSource.containsKey(sourceName)) {
-                        tweetsPerSource.put(sourceName, tweetsPerSource.get(sourceName) + 1);
-                    } else {
-                        tweetsPerSource.put(sourceName, 1);
-                    }
-                    
                     
                     //do something with text
                     //tweet.addAndProcessTweet(jobj.getString("text"));
@@ -274,11 +280,26 @@ public class TwitterUser {
             }
             
             
-            
             double avHashtags = calcAverage(hashtags);
             double avURLs = calcAverage(urls);
             double avMentions = calcAverage(mentions);
+            String source = calculateMostFrequentSource(tweetsPerSource);
             
+            System.out.println("1. mentions: " + avMentions);
+            System.out.println("2. hashtags: " + avHashtags);
+            System.out.println("3. urls: " + avURLs);
+            System.out.println("4. replies: " + replies);
+            System.out.println("5. freq source: " + source);
+//            System.out.println("6. favourites: " + favourites);
+//            System.out.println("7. description: " + hasDescription);
+//            System.out.println("8. geoEnabled: " + geoEnabled);
+//            System.out.println("9. timeZone: " + timeZone);
+//            System.out.println("10. profileOptimized: " + defaultProfile);
+//            System.out.println("11. defaultAvatar: " + defaultAvatar);
+//            System.out.println("12. isTranslator: " + isTranslator);
+//            System.out.println("13. lists: " + lists);
+//            System.out.println("14. location: " + location);
+//            System.out.println("15. isProtected: " + isProtected);
             
             
             return ( (avHashtags >= 4) && (avURLs >= 1) && (avMentions >= 0.2) );
@@ -287,6 +308,27 @@ public class TwitterUser {
             return false;
         }
     }
+    
+    /**
+     * calculates the most frequent source for the user after examining all the
+     * sources that he used.
+     * @param tweetsPerSource
+     */
+    public String calculateMostFrequentSource(HashMap<String,Integer> tweetsPerSource) {
+        Integer maxFrequency = -1;
+        String mostFrequentSource = null;
+        Iterator it = tweetsPerSource.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry user = (Map.Entry) it.next();
+
+            if (maxFrequency < (Integer) user.getValue()) {
+                maxFrequency = (Integer) user.getValue();
+                mostFrequentSource = (String) user.getKey();
+            }
+        }
+        return mostFrequentSource;
+    }
+
     
     /**
      * 

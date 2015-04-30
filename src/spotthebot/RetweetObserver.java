@@ -24,12 +24,6 @@ import twitter4j.conf.ConfigurationBuilder;
  */
 public class RetweetObserver {
 
-    // variables for handling nosql database Mongo
-    private MongoClient mclient;
-    private DB tweetsDB;
-    private DBCollection tweetsColl;
-    private Configuration config;
-
     //sets that handles the users occured from API
     private HashSet<Long> uniqueUsers; //used to check if a user has already occured in the database
     private HashSet<Long> uniqueTweetIDs;
@@ -39,45 +33,12 @@ public class RetweetObserver {
     
     public RetweetObserver() throws JSONException {
         //initializing the lists
-        //usersColl = new ArrayList<>();
         usersColl = new CopyOnWriteArrayList<>();
         uniqueUsers = new HashSet<>();
         uniqueTweetIDs = new HashSet<>();
         highlyRTed = new HashSet<>();
-
-        //configuration();
-        //initializeMongo();
+        
         //calculateRTs();
-    }
-
-    /**
-     * The configuration details of our application as developer mode of Twitter
-     * API.
-     */
-    private void configuration() {
-        ConfigurationBuilder cb = new ConfigurationBuilder();
-        cb.setOAuthConsumerKey("0cc8fkRgUfzX5fYK14m211vhE");
-        cb.setOAuthConsumerSecret("45d3sLIiEG0suWxEGBECTWP0tXJL6hJQwqqNCvo04eeGKjL8Al");
-        cb.setOAuthAccessToken("43403340-aUeWfSgfYpYSDmoeVzaPXF1aaiBAo3IL7zgIXwahU");
-        cb.setOAuthAccessTokenSecret("Tc40irSU8G15IvvEu6EuVjsaM1xQAVCDzJoaSTnxYVFOI");
-        cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
-        config = cb.build();
-    }
-
-    /**
-     * Initializing the attributes of MongoDB. First I create a MongoClient
-     * object (mclient) and then the database (tweets) and the collection in it
-     * (tweetsColl).
-     * 
-     */
-    private void initializeMongo() {
-        try {
-            mclient = new MongoClient("localhost", 27017);
-            tweetsDB = mclient.getDB("tweets");
-            tweetsColl = tweetsDB.createCollection("tweetsColl", null);
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
     public HashSet<Long> getUniqueUsers() {
