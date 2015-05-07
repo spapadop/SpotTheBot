@@ -50,7 +50,14 @@ public class UserTracker {
     private FilterQuery fq;
 
     private List<String> suspicious;
+    
+    private static final int HOURS_OF_INACTIVITY_THRESHOLD = 14; 
 
+    /**
+     * Basic constructor of a User Tracker. 
+     * Doesnt provide suspicious users list.
+     * 
+     */
     public UserTracker() {
         this.suspicious = null;
         mongo = null;
@@ -65,12 +72,12 @@ public class UserTracker {
      * @param suspicious
      * @param mongo
      */
-    public UserTracker(List<String> suspicious, MongoDBHandler mongo, int time) {
+    public UserTracker(List<String> suspicious, MongoDBHandler mongo) {
         this.suspicious = suspicious;
         this.mongo = mongo;
         fq = new FilterQuery();
         configuration();
-        this.addUsersToFollowedUsers(time);
+        this.addUsersToFollowedUsers();
         startListener();
     }
 
@@ -95,25 +102,26 @@ public class UserTracker {
      * It makes the appropriate updates or actions for every user.
      * 
      */
-    private void addUsersToFollowedUsers(int time){
+    private void addUsersToFollowedUsers(){
         System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
  
-        for (String id : suspicious) { //for every user that is suspicious
+        Date now = new Date();
+        for (String id : suspicious) { //for every user that is suspicious //FIX THE TIME !!!!!!!!
             
-            if (mongo.findFollowedUser(id) ==0){ //new user
+            if (!mongo.findFollowedUser(id)){ //new user
                 BasicDBObject user = new BasicDBObject();
                 user.put("id_str", id); //save user's id
-                user.put("starting_time", time);   //time we start to follow him CHECK!
-                user.put("finish_time", time+1);//save finish time as now + next check
+                user.put("starting_time", now);   //time we start to follow him CHECK!
+                //user.put("finish_time", now + HOURS_OF_INACTIVITY_THRESHOLD);//save finish time as now + next check
                 mongo.addObjectToFollowedUsers(user);
-                System.out.println("==Inserted to mongo: " + id + " " + time + " --> " + (time +1));
+                //System.out.println("==Inserted to mongo: " + id + " " + start time + " --> " + finish time);
                 
             } else {//user exists -> update finish time 
                 //check how old is the finish time, as it may disappeared for a while and now came back. !!!!!!!!!!!!
                 
-                BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", time+1)); //finish_time now + next check!
-                mongo.updateFinishTime(id, updated); 
-                System.out.println(id + "==Old user updated finish time.");                
+               // BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", current time + time interval)); //finish_time now + next check!
+//                mongo.updateFinishTime(id, updated); 
+//                System.out.println(id + "==Old user updated finish time.");                
             }
         }
         
@@ -132,14 +140,14 @@ public class UserTracker {
      * 
      * @param newcomers 
      */
-    public void update (List<String> newcomers, int time){
+    public void update (List<String> newcomers){
         System.out.println("Time to update the suspicious list in mongoDB");
 
         stopStreaming();
         this.suspicious = newcomers;
         
         System.out.println("Time add newcomers-updated suspicious users to mongodb (addUsersToFollowedUsers)");
-        this.addUsersToFollowedUsers(time); //performs actions to form the final new suspicious users to follow (deletes inactive users)
+        this.addUsersToFollowedUsers(); //performs actions to form the final new suspicious users to follow (deletes inactive users)
         this.startListener();
     }
     

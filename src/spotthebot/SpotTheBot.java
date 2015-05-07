@@ -23,6 +23,9 @@ public class SpotTheBot {
         //create task to be executed every 1 minute
         Timer time = new Timer(); 
         time.schedule(crawl, 0, TASK_REPEAT);
+        
+        
+        //CHECK TIME DIFFERENCE
 
     }
 }

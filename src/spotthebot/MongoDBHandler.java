@@ -9,7 +9,9 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles everything regarding Mongo databases used for the application.
@@ -32,6 +34,8 @@ class MongoDBHandler{
     private DBCollection followedUsersColl; //storing all users details + starting and finish time of observing
     private DBCollection followedActivityColl; //storing all the activity of followed users
         // private DBCollection tweetsByUsersColl, followedUsersColl, tweetsRetweetedByUsersColl, repliesToUsersTweetsColl, retweetsOfUsersTweetsColl, repliesByUsersColl;
+
+    private static final int HOURS_OF_INACTIVITY_THRESHOLD = 14; 
 
 
     /**
@@ -164,12 +168,12 @@ class MongoDBHandler{
      * Finds a user in our collection, specified by his ID.
      * 
      * @param id
-     * @return 1 if found, 0 if not
+     * @return true if found, false if not
      */
-    public long findFollowedUser(String id){
+    public boolean findFollowedUser(String id){
         BasicDBObject query = new BasicDBObject(); //make a query to count tweets of user
         query.put("id_str", id);
-        return this.followedUsersColl.count(query);
+        return followedUsersColl.count(query) != 0;
     }
     
     /**
@@ -200,7 +204,7 @@ class MongoDBHandler{
         
         while (cursor.hasNext()) { //for every user
             
-            boolean guilty = true;
+            boolean guilty = false;
             DBObject user = cursor.next(); //store user object
             
             BasicDBObject tweetsQuery = new BasicDBObject(); //make a query to count tweets of user
@@ -209,33 +213,66 @@ class MongoDBHandler{
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
-            //FIRST FILTER
-            if(tweetsColl.count(tweetsQuery) > 5 && retweetsColl.count(retweetsQuery)> 5){ //if high number of tweets & retweets 
+            if(tweetsColl.count(tweetsQuery) > 5 && retweetsColl.count(retweetsQuery)> 5){ //if high number of tweets & retweets then set as guilty
+                guilty = true;
                 
-                int folers = (int) user.get("followers_count");
+                int followers = (int) user.get("followers_count");
                 int friends = (int) user.get("friends_count");
                 boolean verified = (boolean) user.get("verified");
-                if (friends == 0)
+                
+                if (friends == 0) //to avoid division with zero
                     friends = 1;
 
-                if ( (folers > 200000 && folers/friends > 100) || verified  ) //if celebrity or verified --> not guilty
-                    guilty = false;                                         //note: maybe celebrities or verified are getting paid to tweet stuff...
+                if ( verified || (followers > 200000 && followers/friends > 100) || !isActive(user.get("id_str").toString())  ) //if celebrity or verified or inactive --> not guilty
+                    guilty = false; 
 
-//                if(tweetsColl.count(tweetsQuery) >10) 
-//                    System.out.println("user: " + user.get("id_str") + 
-//                                        " tweets: " + tweetsColl.count(tweetsQuery) + 
-//                                        " retweets: " + retweetsColl.count(retweetsQuery) + 
-//                                        " verified: " + user.get("verified"));
-
-                if(guilty){ //if not celebrity, add to suspicious
-                    System.out.println("ADDING to suspicious list | " + user.get("id_str")+ " user has: "+ folers+ " followers, " + friends +" followees and verified: " + verified);
+                if(guilty){ //if not celebrity or verified or inactive, add to suspicious
+                    System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str")+ " active user has: "+followers+ " followers, " +friends+" followees and verified: " +verified );
                     String id = user.get("id_str").toString();
                     suspicious.add(id);
                 }
             }
         }
-        
         return suspicious;
+    }
+    
+    /**
+     * Computes the time difference between two dates.
+     * 
+     * @param date1
+     * @param date2
+     * @param timeUnit
+     * @return the time difference between dates
+     */
+    public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
+        long diffInMillies = date2.getTime() - date1.getTime();
+        return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
+    }
+    
+    /**
+     * Checks if a user is active or not.
+     * @param userID
+     * @return true if active, false if inactive
+     */
+    private boolean isActive(String userID){
+        
+        BasicDBObject query = new BasicDBObject(); 
+        query.put("user_id", userID);
+           
+        DBCursor cursor = retweetsColl.find(query); 
+        
+        while (cursor.hasNext()) { //for every retweet occured for user
+            
+            DBObject retweetOccured = cursor.next(); //store retweet object details
+            
+            Date lastRTed = (Date) retweetOccured.get("createdAt");
+            Date now = new Date();
+            
+            if(getDateDiff(lastRTed, now, TimeUnit.HOURS) < HOURS_OF_INACTIVITY_THRESHOLD){ //if last retweet occured more than inactivity threshold hours ago..
+                return true;
+            }
+        }      
+        return false;
     }
     
     public List<String> deleteInactiveUsers(List<String> suspicious, int time){
@@ -261,6 +298,9 @@ class MongoDBHandler{
         
         return toDelete;
     }
+    
+    
+    
     
     // Getters
     
