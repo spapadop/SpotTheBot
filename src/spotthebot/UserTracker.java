@@ -7,11 +7,20 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.ConnectionLifeCycleListener;
 import twitter4j.FilterQuery;
+import twitter4j.JSONObject;
 import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
@@ -30,13 +39,9 @@ import twitter4j.json.DataObjectFactory;
  * @author Sokratis Papadopoulos
  */
 public class UserTracker {
-
-    // variables for handling nosql database Mongo
-    private MongoClient mclient;
-    private DB randomDB, followedDB;
-    private DBCollection tweetsColl, usersColl, retweetsColl;
-    private DBCollection tweetsByUsersColl, followedUsersColl, tweetsRetweetedByUsersColl, repliesToUsersTweetsColl, retweetsOfUsersTweetsColl, repliesByUsersColl;
-    private DBCollection followedResultsColl;
+    
+    //variable handling mongo
+    private MongoDBHandler mongo;
     
     // variables for handling twitter Streaming API
     private TwitterStream stream;
@@ -44,31 +49,34 @@ public class UserTracker {
     private Configuration config;
     private FilterQuery fq;
 
-    private HashSet<Long> highlyRTed;
+    private List<String> suspicious;
 
     public UserTracker() {
-        this.highlyRTed = null;
+        this.suspicious = null;
+        mongo = null;
         fq = new FilterQuery();
         configuration();
-        initializeMongo();
         startListener();
     }
     
     /**
-     * creating a thread for running the tracking
-     * @param highlyRTed 
+     * Creating a thread for running the tracking.
+     * 
+     * @param suspicious
+     * @param mongo
      */
-    public UserTracker(HashSet<Long> highlyRTed) {
-        this.highlyRTed = highlyRTed;
+    public UserTracker(List<String> suspicious, MongoDBHandler mongo, int time) {
+        this.suspicious = suspicious;
+        this.mongo = mongo;
         fq = new FilterQuery();
         configuration();
-        initializeMongo();
+        this.addUsersToFollowedUsers(time);
         startListener();
     }
 
     /**
-     * The configuration details of our application as developer mode of Twitter
-     * API
+     * The configuration details of our app as developer mode of Twitter APIs.
+     * 
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -81,55 +89,41 @@ public class UserTracker {
         
         //stream = new TwitterStreamFactory(config).getInstance();
     }
-
-    /**
-     * Initializing the attributes of MongoDB. First I create a MongoClient
-     * object (mclient) and then the database (tweets) and the collection in it
-     * (tweetsColl).
-     */
-    private void initializeMongo() {
-        try {
-            mclient = new MongoClient("localhost", 27017);
-            randomDB = mclient.getDB("random");
-            usersColl = randomDB.getCollection("users");
-            tweetsColl = randomDB.getCollection("tweets");
-            retweetsColl = randomDB.getCollection("retweets");
-            
-            followedDB = mclient.getDB("followed");
-            followedResultsColl = followedDB.getCollection("results"); //all things returned by API
-            //followedUsersColl = followedDB.getCollection("users"); //users that were followed
-            //tweetsByUsersColl = followedDB.getCollection("tweets"); //tweets created by followed users
-            //tweetsRetweetedByUsersColl = followedDB.getCollection("retweets"); //tweets that were RTed by followed users
-            //repliesToUsersTweetsColl = followedDB.getCollection("replies"); //replies to any tweet created by followed users
-            //retweetsOfUsersTweetsColl = followedDB.getCollection("retweetsToUsersTweets"); //retweets of any tweet created by followed users
-            //repliesByUsersColl = followedDB.getCollection("repliesByUsers"); //manual replies, created by followed users
-            
-            //createIndexes();
-
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
     
     /**
-     * Creates the indexes used in mongoDB to fasten the queries
-     * TODO: Unique constraint doesn't work.
+     * Implements the adding of users to the suspicious list. 
+     * It makes the appropriate updates or actions for every user.
+     * 
      */
-    private void createIndexes(){
-                        
-        // create index on userIDs, ascending | prevents duplicates
-        BasicDBObject query = new BasicDBObject("id_str", 1).append("unique", "true");
-        usersColl.createIndex(query);
-
-        // create index on "creating times of original tweets, ascending
-        tweetsColl.createIndex(new BasicDBObject("created_at", 1));  
-
-        // create index on tweetID of the original tweets, ascending | prevents duplicates
-        tweetsColl.createIndex(new BasicDBObject("id", 1).append("unique", true));  
-
-        // create index on "id_str", ascending
-        //retweetsColl.createIndex(new BasicDBObject("created_at", 1));      
+    private void addUsersToFollowedUsers(int time){
+        System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
+ 
+        for (String id : suspicious) { //for every user that is suspicious
+            
+            if (mongo.findFollowedUser(id) ==0){ //new user
+                BasicDBObject user = new BasicDBObject();
+                user.put("id_str", id); //save user's id
+                user.put("starting_time", time);   //time we start to follow him CHECK!
+                user.put("finish_time", time+1);//save finish time as now + next check
+                mongo.addObjectToFollowedUsers(user);
+                System.out.println("==Inserted to mongo: " + id + " " + time + " --> " + (time +1));
+                
+            } else {//user exists -> update finish time 
+                //check how old is the finish time, as it may disappeared for a while and now came back. !!!!!!!!!!!!
+                
+                BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", time+1)); //finish_time now + next check!
+                mongo.updateFinishTime(id, updated); 
+                System.out.println(id + "==Old user updated finish time.");                
+            }
+        }
         
+        //CHECK if users are inactive for long time --> delete user from suspicious list
+//        List<String> toDelete = mongo.deleteInactiveUsers(suspicious, time);
+//        if(!toDelete.isEmpty()){
+//            //perform deletions from suspicious list
+//            for(String duser : toDelete)
+//                this.suspicious.remove(duser);
+//        }
     }
     
     /**
@@ -138,9 +132,14 @@ public class UserTracker {
      * 
      * @param newcomers 
      */
-    public void update (HashSet<Long> newcomers){
-        stream.shutdown();
-        this.highlyRTed = newcomers;
+    public void update (List<String> newcomers, int time){
+        System.out.println("Time to update the suspicious list in mongoDB");
+
+        stopStreaming();
+        this.suspicious = newcomers;
+        
+        System.out.println("Time add newcomers-updated suspicious users to mongodb (addUsersToFollowedUsers)");
+        this.addUsersToFollowedUsers(time); //performs actions to form the final new suspicious users to follow (deletes inactive users)
         this.startListener();
     }
     
@@ -148,7 +147,7 @@ public class UserTracker {
      *Receives all information about the list of following users.
      * Stores that information at different collections in mongoDB.
      */
-    public void startListener() { //System.out.println("Starts listener for tracking users");
+    public void startListener() { 
         
         listener = new StatusListener() {
 
@@ -157,12 +156,10 @@ public class UserTracker {
                 User user = status.getUser();
                 Long id = user.getId();
                 
-                if(highlyRTed!= null){
-
+                if(suspicious!= null){
                     String json = DataObjectFactory.getRawJSON(status);
                     DBObject jsonObj = (DBObject) JSON.parse(json);
-                    followedResultsColl.insert(jsonObj);
-                    
+                    mongo.addObjectToFollowedUsersActivity(jsonObj);
                 }
             }
 
@@ -192,7 +189,7 @@ public class UserTracker {
             }
         };
         
-        if(highlyRTed!=null){
+        if(suspicious!=null){
             addFilter();
         }
     }
@@ -203,11 +200,12 @@ public class UserTracker {
      */
     private void addFilter(){
         
-        long userIDs[] = new long[highlyRTed.size()];
+        long[] userIDs = new long[this.suspicious.size()];
         int i = 0;
         
-        for (Long id : highlyRTed) {
-            userIDs[i++] = id;
+        //CHECK THAT SHIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!! MIPWS APO TIN DB PERNOUME?
+        for (String id : suspicious) {
+            userIDs[i++] = Long.parseLong(id);
         }
         
         if(userIDs.length>0){

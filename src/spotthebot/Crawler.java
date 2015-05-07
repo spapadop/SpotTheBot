@@ -10,6 +10,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimerTask;
@@ -46,27 +47,33 @@ public class Crawler extends TimerTask {
     private StatusListener listener;
     private FilterQuery fq;
 
-    private RetweetObserver users;
+    //private RetweetObserver users;
     private UserTracker trackingUsers;
+    private int time;
 
     /**
      * Initializes a crawler object. 
      * Initializes basic variables and establishes connections
      * 
      * @throws JSONException
-     * @throws MongoException
-     * @throws UnknownHostException 
+     * @throws MongoException 
      */
-    public Crawler() throws JSONException, MongoException, UnknownHostException {
-        users = new RetweetObserver();
+    public Crawler() throws JSONException {
+        time=0;
         trackingUsers = null;
         configuration(); //configures my application as developer mode
-        mongo = new MongoDBHandler(); //creates the database and collection in mongoDB
+        try {
+            mongo = new MongoDBHandler(); //creates the database and collection in mongoDB
+        } catch (UnknownHostException ex) {
+            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (MongoException ex) {
+            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+        }
         startListener(); //listener to Streaming API that will get the tweets
     }
 
     /**
-     * The configuration details of our application as developer mode of TwitterAPI
+     * The configuration details of our app as developer mode of TwitterAPI
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -112,9 +119,9 @@ public class Crawler extends TimerTask {
                         //storing necessary details for every retweet occured 
                         //(like log file of RTs)
                         BasicDBObject document = new BasicDBObject();
-                        document.put("originalTweetID", originalTweetID); //save original tweetID
-                        document.put("originalUserID", originalUserID);   //save original userID 
-                        document.put("retweetedUserID", retweetedUserID); //save retweeter userID
+                        document.put("originalTweetID", originalTweetID.toString()); //save original tweetID
+                        document.put("originalUserID", originalUserID.toString());   //save original userID 
+                        document.put("retweetedUserID", retweetedUserID.toString()); //save retweeter userID
                         document.put("created_at", at);                   //save retweet date
                         
                         mongo.addObjectToRetweetsColl(document); //insert onto mongoDB retweet collection
@@ -124,13 +131,13 @@ public class Crawler extends TimerTask {
                         //==== INSERT USERS INTO USERS COLLECTION ============//
                         
                         //original users                        
-                        if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
+                        //if(!users.checkIfUserExists(originalUserID, originalTweetID, at)){
                             String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
                             DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails);       //creates a DBObject out of json for mongoDB
                             mongo.addObjectToUsersColl(originalUserToStore);
 
-                            users.updateListOfUsers(originalUserID, originalTweetID, at);
-                        }
+                            //users.updateListOfUsers(originalUserID, originalTweetID, at);
+                        //}
                         
                         //retweeter users
                         String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
@@ -140,19 +147,20 @@ public class Crawler extends TimerTask {
                         //====================================================//
                                                 
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
-                        if(!users.checkIfTweetIDExists(originalTweetID)){
+                        //if(!users.checkIfTweetIDExists(originalTweetID)){
                             JSONObject tweetDetails = jObj.getJSONObject("retweeted_status"); 
                             tweetDetails.remove("user");
                             DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
-                            tweetToStore.put("user_id", originalUserID); //put just id_str of original user
+                            tweetToStore.put("user_id", originalUserID.toString()); //put just id_str of original user
  /*!!!!! DATE !!!!!!!!*/    //Date originalTweetDate = status.getRetweetedStatus().getCreatedAt(); //takes the date of original tweet
                             mongo.addObjectToTweetsColl(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
-                        }
+                        //}
                         
                         //====================================================//
                     }
                 } catch (JSONException ex) {
-                    // Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+                    //retweet_status not found -> not a retweet
+                    //Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
 
@@ -178,11 +186,12 @@ public class Crawler extends TimerTask {
 
             @Override
             public void onException(Exception excptn) {
+                //Twitter4J Async Dispatcher
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
 
-        String keywords[] = {"I", "am", "is", "the", "a", "an", "and", "to", "we", "I", "it", "not", "so", "if", "go", "now", "come", "will", "on", "at"};
+        String keywords[] = {"I", "am", "is", "the", "a", "an", "and", "to", "we", "I", "it", "not", "so", "if", "go", "now", "come", "will", "on", "at", "do"};
         String lang[] = {"en"};
 
         fq.track(keywords);
@@ -204,6 +213,10 @@ public class Crawler extends TimerTask {
         long diffInMillies = date2.getTime() - date1.getTime();
         return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
     }
+    
+    public int getTime(){
+        return time;
+    }
 
     /**
      * Runs every hour and checks for highlyRTed users to follow.
@@ -213,6 +226,32 @@ public class Crawler extends TimerTask {
      */
     @Override
     public void run() {
+        System.out.println(time+ " ****** PERISTASIAKOS ELEGXOS ********");
+        List<String> suspicious = mongo.findSuspiciousUsers();
+        if(!suspicious.isEmpty())
+            System.out.println("PRINTING SUSPICIOUS");
+        for(String suser: suspicious)
+            System.out.println(suser);
+        
+        if(!suspicious.isEmpty()){
+            System.out.println("we have suspicious users");
+        
+            if (trackingUsers == null)  //first time list for users
+                trackingUsers = new UserTracker(suspicious, mongo, time);
+            else 
+                trackingUsers.update(suspicious, time);
+        } else {
+            System.out.println("At the moment there are no suspicious users.");
+        }
+        
+        System.out.println("-------------------------------------");   
+        time++;
+    }                
+}
+
+
+//OLD RUN
+ /*
         System.out.println("****** PERISTASIAKOS ELEGXOS ********");
 
         //users.printAll();
@@ -229,65 +268,65 @@ public class Crawler extends TimerTask {
                 if(userDetailsPassed){
                     //user's tweets details
                     System.out.println("UserDetails was true!");
-//                    ArrayList<DBObject> fetchedTweets = new ArrayList<>(); //list that will store his tweets details
-//                    for (Map.Entry<Long, Integer> entry : fuser.getTimesRetweeted().entrySet()) {
-//                        System.out.println("tweetID:" + entry.getKey() + ", timesRTed:" + entry.getValue());
-//                    }
-//
-//                    //maybe we can also use the tweetIDs for queries
-//                    BasicDBObject tweetsQuery = new BasicDBObject("user_id", fuser.getUserID());
-//                    DBCursor cursor = tweetsColl.find(tweetsQuery);
-//
-//                    try {
-//                        while (cursor.hasNext()) {
-//                            fetchedTweets.add(cursor.next());
-//                        }
-//                    } finally {
-//                        cursor.close();
-//                    }
-//
-//                    for (DBObject tweet : fetchedTweets) {
-//                        System.out.println("tweetID: " +tweet.get("id") + " created_at: " +tweet.get("created_at"));
-//                    }
-//
-//                    fuser.checkTweetsDetails(fetchedTweets);                
+                    ArrayList<DBObject> fetchedTweets = new ArrayList<>(); //list that will store his tweets details
+                    for (Map.Entry<Long, Integer> entry : fuser.getTimesRetweeted().entrySet()) {
+                        System.out.println("tweetID:" + entry.getKey() + ", timesRTed:" + entry.getValue());
+                    }
+
+                    //maybe we can also use the tweetIDs for queries
+                    BasicDBObject tweetsQuery = new BasicDBObject("user_id", fuser.getUserID());
+                    DBCursor cursor = tweetsColl.find(tweetsQuery);
+
+                    try {
+                        while (cursor.hasNext()) {
+                            fetchedTweets.add(cursor.next());
+                        }
+                    } finally {
+                        cursor.close();
+                    }
+
+                    for (DBObject tweet : fetchedTweets) {
+                        System.out.println("tweetID: " +tweet.get("id") + " created_at: " +tweet.get("created_at"));
+                    }
+
+                    fuser.checkTweetsDetails(fetchedTweets);                
                 }
                 
                 
                 //highly retweeted
-//                try {
-//                    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
-//                    Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
-//
-//                    Date currentTime = new Date();
-//                    dateFormat.format(currentTime);
-//
-//                    //if the last retweet occured less than 5 days ago and the user has received more than 20 retweets in a tweet
-//                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
-//                        users.getHighlyRTed().add(fuser.getUserID());
-//                    } else {
-//                        users.getHighlyRTed().remove(fuser.getUserID());
-//                    }
-//                } catch (ParseException ex) {
-//                    Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
-//                }
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
+                    Date lastRTedTime = dateFormat.parse(fuser.getLastRTed().toString());
+
+                    Date currentTime = new Date();
+                    dateFormat.format(currentTime);
+
+                    //if the last retweet occured less than 5 days ago and the user has received more than 20 retweets in a tweet
+                    if (getDateDiff(lastRTedTime, currentTime, TimeUnit.DAYS) <= 5 && fuser.getRetweetsReceived() > 20) {
+                        users.getHighlyRTed().add(fuser.getUserID());
+                    } else {
+                        users.getHighlyRTed().remove(fuser.getUserID());
+                    }
+                } catch (ParseException ex) {
+                    Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 
                 
                 
 
             }            
 
-//            if (users.getHighlyRTed() != null) {
-//                
-//                if (trackingUsers == null) { //first time list for users
-//                    if(users.getHighlyRTed().size() >0){
-//                        trackingUsers = new UserTracker(users.getHighlyRTed());
-//                    }
-//                } else { //update existing list of users
-//                    System.out.println("><><>< Update List");
-//                    trackingUsers.update(users.getHighlyRTed());
-//                }
-//            }
+            if (users.getHighlyRTed() != null) {
+                
+                if (trackingUsers == null) { //first time list for users
+                    if(users.getHighlyRTed().size() >0){
+                        trackingUsers = new UserTracker(users.getHighlyRTed());
+                    }
+                } else { //update existing list of users
+                    System.out.println("><><>< Update List");
+                    trackingUsers.update(users.getHighlyRTed());
+                }
+            }
                   
             
             
@@ -297,6 +336,4 @@ public class Crawler extends TimerTask {
 
         } else {
             System.out.println("List of users currently empty");
-        }
-    }
-}
+        }*/
