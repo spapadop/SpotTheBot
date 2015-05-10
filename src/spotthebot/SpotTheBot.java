@@ -14,13 +14,13 @@ import twitter4j.JSONException;
  */
 public class SpotTheBot {
     
-    private static final int TASK_REPEAT = 1800000; // one hour: 3600000 | time-repeat of checking task for updating list of potential spammers | 60.000 milliseconds = 1 minute
+    private static final int TASK_REPEAT = 1200000; // one hour: 3600000 | time-repeat of checking task for updating list of potential spammers | 60.000 milliseconds = 1 minute
     
     public static void main(String[] args) throws JSONException, InterruptedException, MongoException, UnknownHostException {
    
         Crawler crawl = new Crawler(); 
 
-        //create task to be executed every 30 minutes
+        //create task to be executed every 20 minutes
         Timer time = new Timer(); 
         time.schedule(crawl, 0, TASK_REPEAT);
         

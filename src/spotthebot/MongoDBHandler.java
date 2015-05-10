@@ -227,7 +227,7 @@ class MongoDBHandler{
                     guilty = false; 
 
                 if(guilty){ //if not celebrity or verified or inactive, add to suspicious
-                    //System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str") + " active user has: "+followers+ " followers, " +friends+" followees and verified: " +verified );
+                    System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str") + " active user has: "+followers+ " followers, " +friends+" followees, verified: " +verified + " and active: " + isActive(user.get("id_str").toString()));
                     String id = user.get("id_str").toString();
                     suspicious.add(id);
                 }
@@ -268,7 +268,8 @@ class MongoDBHandler{
             
 //            System.out.println("TEST DATE | last RTed: " + retweetOccured.get("created_at") + " now: " + now);
 //            System.out.println("hours inactive: "+ getDateDiff(lastRTed,now,TimeUnit.MINUTES) );
-            return getDateDiff(lastRTed, now, TimeUnit.MINUTES) < MINUTES_OF_INACTIVITY_THRESHOLD;
+            if(getDateDiff(lastRTed, now, TimeUnit.MINUTES) < MINUTES_OF_INACTIVITY_THRESHOLD)
+                return true;
         }
         return false;
     }
