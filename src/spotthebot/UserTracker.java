@@ -89,7 +89,7 @@ public class UserTracker {
      * 
      */
     private void addUsersToFollowedUsers(){
-        System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
+        //System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
  
         Date now = new Date();
         for (String id : suspicious) { //for every user that is suspicious //FIX THE TIME !!!!!!!!
@@ -101,13 +101,13 @@ public class UserTracker {
                 user.put("starting_time", now);   
                 user.put("finish_time", finishTime);  
                 mongo.addObjectToFollowedUsers(user);
-                System.out.println("==Inserted to mongo: " + id + " " + now + " --> " + finishTime);
+                //System.out.println("==Inserted to mongo: " + id + " " + now + " --> " + finishTime);
                 
             } else {//user exists -> update finish time 
                 //check how old is the finish time, as it may disappeared for a while and now came back. !!!!!!!!!!!!
                 BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
                 mongo.updateFinishTime(id, updated); 
-                System.out.println(id + "==Old user updated finish time.");                
+                //System.out.println(id + "==Old user updated finish time.");                
             }
         }
         
@@ -127,14 +127,11 @@ public class UserTracker {
      * @param newcomers 
      */
     public void update (List<String> newcomers){
-        System.out.println("Time to update the suspicious list in mongoDB");
-
+        //System.out.println("(update) the suspicious list in mongoDB");
         stopStreaming();
-        this.suspicious = newcomers;
-        
-        System.out.println("Time add newcomers-updated suspicious users to mongodb (addUsersToFollowedUsers)");
-        this.addUsersToFollowedUsers(); //performs actions to form the final new suspicious users to follow (deletes inactive users)
-        this.startListener();
+        suspicious = newcomers;
+        addUsersToFollowedUsers(); //performs actions to form the final new suspicious users to follow (deletes inactive users)
+        startListener();
     }
     
     /**

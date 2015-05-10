@@ -212,7 +212,7 @@ class MongoDBHandler{
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
-            if(tweetsColl.count(tweetsQuery) > 20 && retweetsColl.count(retweetsQuery)> 50){ //if high number of tweets & retweets then set as guilty
+            if(tweetsColl.count(tweetsQuery) > 25 && retweetsColl.count(retweetsQuery)> 50){ //if high number of tweets & retweets then set as guilty
                 guilty = true;
                 
                 int followers = (int) user.get("followers_count");
@@ -227,7 +227,7 @@ class MongoDBHandler{
                     guilty = false; 
 
                 if(guilty){ //if not celebrity or verified or inactive, add to suspicious
-                    System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str") + " active user has: "+followers+ " followers, " +friends+" followees, verified: " +verified + " and active: " + isActive(user.get("id_str").toString()));
+                    //System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str") + " active user has: "+followers+ " followers, " +friends+" followees, verified: " +verified + " and active: " + isActive(user.get("id_str").toString()));
                     String id = user.get("id_str").toString();
                     suspicious.add(id);
                 }

@@ -215,9 +215,9 @@ public class Crawler extends TimerTask {
         List<String> suspicious = mongo.findSuspiciousUsers();            
         
         if(!suspicious.isEmpty()){
-            System.out.println("We have the following suspicious users: ");
-            for(String suser: suspicious)
-                System.out.println(suser);
+            //System.out.println("We have the following suspicious users: ");
+            //for(String suser: suspicious)
+                //System.out.println(suser);
                     
             if (trackingUsers == null)  //first time list for users
                 trackingUsers = new UserTracker(suspicious, mongo);
@@ -227,7 +227,7 @@ public class Crawler extends TimerTask {
             System.out.println("At the moment there are no suspicious users.");
         }
         
-        System.out.println("-------------------------------------");   
+        //System.out.println("-------------------------------------");   
         time++;
     }                
 }
