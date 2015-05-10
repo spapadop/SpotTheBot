@@ -35,8 +35,7 @@ class MongoDBHandler{
     private DBCollection followedActivityColl; //storing all the activity of followed users
         // private DBCollection tweetsByUsersColl, followedUsersColl, tweetsRetweetedByUsersColl, repliesToUsersTweetsColl, retweetsOfUsersTweetsColl, repliesByUsersColl;
 
-    private static final int HOURS_OF_INACTIVITY_THRESHOLD = 14; 
-
+    private static final int MINUTES_OF_INACTIVITY_THRESHOLD = 45; 
 
     /**
      * Constructor that creates the appropriate DB environment.
@@ -213,7 +212,7 @@ class MongoDBHandler{
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
-            if(tweetsColl.count(tweetsQuery) > 5 && retweetsColl.count(retweetsQuery)> 5){ //if high number of tweets & retweets then set as guilty
+            if(tweetsColl.count(tweetsQuery) > 20 && retweetsColl.count(retweetsQuery)> 50){ //if high number of tweets & retweets then set as guilty
                 guilty = true;
                 
                 int followers = (int) user.get("followers_count");
@@ -223,11 +222,12 @@ class MongoDBHandler{
                 if (friends == 0) //to avoid division with zero
                     friends = 1;
 
+//                System.out.println("FIND-SUSPICIOUS| "+user.get("id_str").toString() + " is " + isActive(user.get("id_str").toString()));
                 if ( verified || (followers > 200000 && followers/friends > 100) || !isActive(user.get("id_str").toString())  ) //if celebrity or verified or inactive --> not guilty
                     guilty = false; 
 
                 if(guilty){ //if not celebrity or verified or inactive, add to suspicious
-                    System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str")+ " active user has: "+followers+ " followers, " +friends+" followees and verified: " +verified );
+                    //System.out.println("ADDING to suspicious list in RAM | " +user.get("id_str") + " active user has: "+followers+ " followers, " +friends+" followees and verified: " +verified );
                     String id = user.get("id_str").toString();
                     suspicious.add(id);
                 }
@@ -257,49 +257,45 @@ class MongoDBHandler{
     private boolean isActive(String userID){
         
         BasicDBObject query = new BasicDBObject(); 
-        query.put("user_id", userID);
+        query.put("originalUserID", userID);
            
         DBCursor cursor = retweetsColl.find(query); 
-        
         while (cursor.hasNext()) { //for every retweet occured for user
-            
             DBObject retweetOccured = cursor.next(); //store retweet object details
             
-            Date lastRTed = (Date) retweetOccured.get("createdAt");
+            Date lastRTed = (Date) retweetOccured.get("created_at");
             Date now = new Date();
             
-            if(getDateDiff(lastRTed, now, TimeUnit.HOURS) < HOURS_OF_INACTIVITY_THRESHOLD){ //if last retweet occured more than inactivity threshold hours ago..
-                return true;
-            }
-        }      
+//            System.out.println("TEST DATE | last RTed: " + retweetOccured.get("created_at") + " now: " + now);
+//            System.out.println("hours inactive: "+ getDateDiff(lastRTed,now,TimeUnit.MINUTES) );
+            return getDateDiff(lastRTed, now, TimeUnit.MINUTES) < MINUTES_OF_INACTIVITY_THRESHOLD;
+        }
         return false;
     }
     
-    public List<String> deleteInactiveUsers(List<String> suspicious, int time){
-        ArrayList<String> toDelete = new ArrayList<>();
-        boolean flag = false;
-        
-        for(String userID : suspicious){  
-            BasicDBObject query = new BasicDBObject(); //make a query to find retweets received by user
-            query.put("originalUserID", userID);
-            
-            DBCursor retweetCursor = this.retweetsColl.find(query); //get a cursor that will run throughout the collection of retweets and return the ones belong to user.
-            while (retweetCursor.hasNext()) {
-                DBObject retweetOccured = retweetCursor.next();
-                retweetOccured.get("createdAt");
-                //check if this date is too old
-                //if it is not --> flag = true and break -> o tupos einai active
-                
-            }
-            if(!flag){
-                toDelete.add(userID);
-            }
-        }
-        
-        return toDelete;
-    }
-    
-    
+//    public List<String> deleteInactiveUsers(List<String> suspicious, int time){
+//        ArrayList<String> toDelete = new ArrayList<>();
+//        boolean flag = false;
+//        
+//        for(String userID : suspicious){  
+//            BasicDBObject query = new BasicDBObject(); //make a query to find retweets received by user
+//            query.put("originalUserID", userID);
+//            
+//            DBCursor retweetCursor = this.retweetsColl.find(query); //get a cursor that will run throughout the collection of retweets and return the ones belong to user.
+//            while (retweetCursor.hasNext()) {
+//                DBObject retweetOccured = retweetCursor.next();
+//                retweetOccured.get("createdAt");
+//                //check if this date is too old
+//                //if it is not --> flag = true and break -> o tupos einai active
+//                
+//            }
+//            if(!flag){
+//                toDelete.add(userID);
+//            }
+//        }
+//        
+//        return toDelete;
+//    }
     
     
     // Getters

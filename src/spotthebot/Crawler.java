@@ -1,18 +1,12 @@
 package spotthebot;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 import java.net.UnknownHostException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -132,12 +126,12 @@ public class Crawler extends TimerTask {
                         
                         //original users
                         String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
-                        DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails);       //creates a DBObject out of json for mongoDB
+                        DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails); //creates a DBObject out of json for mongoDB
                         mongo.addObjectToUsersColl(originalUserToStore);
 
                         //retweeter users
                         String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
-                        DBObject retweeterUserToStore = (DBObject) JSON.parse(retweeterUserDetails);       //creates a DBObject out of json for mongoDB
+                        DBObject retweeterUserToStore = (DBObject) JSON.parse(retweeterUserDetails); //creates a DBObject out of json for mongoDB
                         mongo.addObjectToUsersColl(retweeterUserToStore); //insert retweeter user on mongoDB
                         
                         //====================================================//

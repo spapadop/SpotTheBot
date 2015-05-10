@@ -1,26 +1,12 @@
 package spotthebot;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
-import java.net.UnknownHostException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import twitter4j.ConnectionLifeCycleListener;
 import twitter4j.FilterQuery;
-import twitter4j.JSONObject;
 import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
@@ -51,7 +37,7 @@ public class UserTracker {
 
     private List<String> suspicious;
     
-    private static final int HOURS_OF_INACTIVITY_THRESHOLD = 14; 
+    private static final int MINUTES_OF_INACTIVITY_THRESHOLD = 45; 
 
     /**
      * Basic constructor of a User Tracker. 
@@ -77,7 +63,7 @@ public class UserTracker {
         this.mongo = mongo;
         fq = new FilterQuery();
         configuration();
-        this.addUsersToFollowedUsers();
+        addUsersToFollowedUsers();
         startListener();
     }
 
@@ -108,20 +94,20 @@ public class UserTracker {
         Date now = new Date();
         for (String id : suspicious) { //for every user that is suspicious //FIX THE TIME !!!!!!!!
             
+            Date finishTime=new Date(now.getTime() + (45 * 60000));
             if (!mongo.findFollowedUser(id)){ //new user
                 BasicDBObject user = new BasicDBObject();
                 user.put("id_str", id); //save user's id
-                user.put("starting_time", now);   //time we start to follow him CHECK!
-                //user.put("finish_time", now + HOURS_OF_INACTIVITY_THRESHOLD);//save finish time as now + next check
+                user.put("starting_time", now);   
+                user.put("finish_time", finishTime);  
                 mongo.addObjectToFollowedUsers(user);
-                //System.out.println("==Inserted to mongo: " + id + " " + start time + " --> " + finish time);
+                System.out.println("==Inserted to mongo: " + id + " " + now + " --> " + finishTime);
                 
             } else {//user exists -> update finish time 
                 //check how old is the finish time, as it may disappeared for a while and now came back. !!!!!!!!!!!!
-                
-               // BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", current time + time interval)); //finish_time now + next check!
-//                mongo.updateFinishTime(id, updated); 
-//                System.out.println(id + "==Old user updated finish time.");                
+                BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
+                mongo.updateFinishTime(id, updated); 
+                System.out.println(id + "==Old user updated finish time.");                
             }
         }
         
@@ -161,14 +147,9 @@ public class UserTracker {
 
             @Override
             public void onStatus(Status status) {
-                User user = status.getUser();
-                Long id = user.getId();
-                
-                if(suspicious!= null){
-                    String json = DataObjectFactory.getRawJSON(status);
-                    DBObject jsonObj = (DBObject) JSON.parse(json);
-                    mongo.addObjectToFollowedUsersActivity(jsonObj);
-                }
+                String json = DataObjectFactory.getRawJSON(status);
+                DBObject jsonObj = (DBObject) JSON.parse(json);
+                mongo.addObjectToFollowedUsersActivity(jsonObj);
             }
 
             @Override
@@ -211,7 +192,6 @@ public class UserTracker {
         long[] userIDs = new long[this.suspicious.size()];
         int i = 0;
         
-        //CHECK THAT SHIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!! MIPWS APO TIN DB PERNOUME?
         for (String id : suspicious) {
             userIDs[i++] = Long.parseLong(id);
         }
@@ -272,4 +252,5 @@ public class UserTracker {
             System.out.println("Stream Stopped");
         }
     }
+    
 }
