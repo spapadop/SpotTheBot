@@ -3,6 +3,7 @@ package spotthebot;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import twitter4j.ConnectionLifeCycleListener;
@@ -13,7 +14,6 @@ import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
-import twitter4j.User;
 import twitter4j.conf.Configuration;
 import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
@@ -37,8 +37,6 @@ public class UserTracker {
 
     private List<String> suspicious;
     
-    private static final int MINUTES_OF_INACTIVITY_THRESHOLD = 45; 
-
     /**
      * Basic constructor of a User Tracker. 
      * Doesnt provide suspicious users list.
@@ -92,32 +90,43 @@ public class UserTracker {
         //System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
  
         Date now = new Date();
-        for (String id : suspicious) { //for every user that is suspicious //FIX THE TIME !!!!!!!!
+        for (String id : suspicious) { //for every user that is suspicious
             
             Date finishTime=new Date(now.getTime() + (45 * 60000));
             if (!mongo.findFollowedUser(id)){ //new user
+                System.out.println("TIME TO ADD NEW USER TO FOLLOWED!");
                 BasicDBObject user = new BasicDBObject();
                 user.put("id_str", id); //save user's id
-                user.put("starting_time", now);   
-                user.put("finish_time", finishTime);  
-                mongo.addObjectToFollowedUsers(user);
+                //user.put("starting_time", now);   
+                //user.put("finish_time", finishTime);  
+                //mongo.addObjectToFollowedUsers(user);
                 //System.out.println("==Inserted to mongo: " + id + " " + now + " --> " + finishTime);
+                       
+                List<BasicDBObject> times = new ArrayList<>();
+                BasicDBObject time = new BasicDBObject();
+                time.put("starting_time", now);   
+                time.put("finish_time", finishTime); 
+                times.add(time);
+                user.put("following_periods", times);
+                mongo.addObjectToFollowedUsers(user);
+                
                 
             } else {//user exists -> update finish time 
-                //check how old is the finish time, as it may disappeared for a while and now came back. !!!!!!!!!!!!
-                BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
-                mongo.updateFinishTime(id, updated); 
-                //System.out.println(id + "==Old user updated finish time.");                
+                System.out.println("TIME TO [UPDATE] A FOLLOWED USER!");
+                //BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
+                //mongo.updateFinishTime(id, updated); 
+                //System.out.println(id + "==Old user updated finish time.");   
+                
+                BasicDBObject time = new BasicDBObject();
+                time.put("starting_time", now);   
+                time.put("finish_time", finishTime); 
+
+                BasicDBObject update = new BasicDBObject();
+                update.put("$push", new BasicDBObject("following_periods",time));
+
+                mongo.appendFinishTime(id, update);
             }
         }
-        
-        //CHECK if users are inactive for long time --> delete user from suspicious list
-//        List<String> toDelete = mongo.deleteInactiveUsers(suspicious, time);
-//        if(!toDelete.isEmpty()){
-//            //perform deletions from suspicious list
-//            for(String duser : toDelete)
-//                this.suspicious.remove(duser);
-//        }
     }
     
     /**
@@ -202,9 +211,8 @@ public class UserTracker {
             stream.filter(fq);
             
 //          //print all userIDs that are going to be followed
-//          for (int j=0; j<userIDs.length; j++) {
-//              System.out.println(userIDs[j]);
-//          }
+//          for (int j=0; j<userIDs.length; j++) 
+//              System.out.println(userIDs[j]);         
         }
     }
     
@@ -237,17 +245,12 @@ public class UserTracker {
         });
 
         stream.shutdown();
-        
-
+  
         while (stream != null) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
             }
         }
-        if (stream == null) {
-            System.out.println("Stream Stopped");
-        }
     }
-    
 }

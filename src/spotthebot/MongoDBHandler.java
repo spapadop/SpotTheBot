@@ -35,7 +35,7 @@ class MongoDBHandler{
     private DBCollection followedActivityColl; //storing all the activity of followed users
         // private DBCollection tweetsByUsersColl, followedUsersColl, tweetsRetweetedByUsersColl, repliesToUsersTweetsColl, retweetsOfUsersTweetsColl, repliesByUsersColl;
 
-    private static final int MINUTES_OF_INACTIVITY_THRESHOLD = 45; 
+    private static final int MINUTES_OF_INACTIVITY_THRESHOLD = 600; 
 
     /**
      * Constructor that creates the appropriate DB environment.
@@ -190,6 +190,12 @@ class MongoDBHandler{
         this.followedUsersColl.update(query,updated);
     }
     
+    public void appendFinishTime(String id, DBObject newEntry){
+        BasicDBObject query = new BasicDBObject(); //make a query to find the specific user
+        query.put("id_str", id);
+        this.followedUsersColl.update(query,newEntry);
+    }
+    
     /**
      * Identify the list of suspicious users looking at several attributes
      * while making queries at our mongo database.
@@ -212,7 +218,7 @@ class MongoDBHandler{
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
-            if(tweetsColl.count(tweetsQuery) > 25 && retweetsColl.count(retweetsQuery)> 50){ //if high number of tweets & retweets then set as guilty
+            if(tweetsColl.count(tweetsQuery) > 25 && retweetsColl.count(retweetsQuery)> 1000){ //if high number of tweets & retweets then set as guilty
                 guilty = true;
                 
                 int followers = (int) user.get("followers_count");
