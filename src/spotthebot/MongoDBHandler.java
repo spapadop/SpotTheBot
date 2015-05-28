@@ -218,6 +218,8 @@ class MongoDBHandler{
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
+            // na vgalw to active
+            // 
             if(tweetsColl.count(tweetsQuery) > 25 && retweetsColl.count(retweetsQuery)> 1000){ //if high number of tweets & retweets then set as guilty
                 guilty = true;
                 
@@ -317,6 +319,18 @@ class MongoDBHandler{
     
     public DBCollection getRetweetsColl(){
         return retweetsColl;
+    }
+    
+    public DBCollection getFollowedUsersColl() {
+        return followedUsersColl;
+    }
+
+    public DBCollection getFollowedActivityColl() {
+        return followedActivityColl;
+    }
+
+    public static int getMINUTES_OF_INACTIVITY_THRESHOLD() {
+        return MINUTES_OF_INACTIVITY_THRESHOLD;
     }
 	
 }
