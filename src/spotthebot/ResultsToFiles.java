@@ -51,14 +51,14 @@ public class ResultsToFiles {
                 k=1;
                 writer.println();
                 writer.println();
-                writer.println("========= USER RETWEETED THESE TWEETS =========");
+                writer.println("====================================== USER RETWEETED THESE TWEETS =====================================");
                 while (retweets.hasNext()) { //for every tweet
                     DBObject retweet = retweets.next(); //store user object
                    
                     BasicDBObject quer = new BasicDBObject(); //make a query to count retweets of user
                     quer.put("id_str", retweet.get("originalTweetID"));
                     DBObject  tw = mongo.getTweetsColl().findOne(quer);
-                    writer.println( k +". " + retweet.get("originalTweetID")+ ": " + tw.get("text"));
+                    writer.println( k +". " + retweet.get("originalTweetID") + " >> " +retweet.get("originalUserID")+ ": " + tw.get("text"));
                     k++;
                 }
             }

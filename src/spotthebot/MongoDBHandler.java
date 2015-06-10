@@ -1,5 +1,6 @@
 package spotthebot;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -8,9 +9,12 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import java.net.UnknownHostException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -219,7 +223,7 @@ class MongoDBHandler{
             retweetsQuery.put("originalUserID", user.get("id_str"));
             
             // na vgalw to active
-            // 
+            // kai na kanw queries mono gia tis teleutaies 10 wres
             if(tweetsColl.count(tweetsQuery) > 25 && retweetsColl.count(retweetsQuery)> 1000){ //if high number of tweets & retweets then set as guilty
                 guilty = true;
                 
@@ -231,7 +235,7 @@ class MongoDBHandler{
                     friends = 1;
 
 //                System.out.println("FIND-SUSPICIOUS| "+user.get("id_str").toString() + " is " + isActive(user.get("id_str").toString()));
-                if ( verified || (followers > 200000 && followers/friends > 100) || !isActive(user.get("id_str").toString())  ) //if celebrity or verified or inactive --> not guilty
+                if ( verified || (followers > 200000 && followers/friends > 1000) ) //if celebrity or verified or inactive --> not guilty || || !isActive(user.get("id_str").toString())
                     guilty = false; 
 
                 if(guilty){ //if not celebrity or verified or inactive, add to suspicious
@@ -280,6 +284,41 @@ class MongoDBHandler{
                 return true;
         }
         return false;
+    }
+    
+    public Date getTimeUserAppeared(Long id) throws ParseException{
+        BasicDBObject query = new BasicDBObject(); 
+        query.put("id_str", id.toString());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
+        
+        //if it is a list of dates
+            DBCursor c = this.followedUsersColl.find(query);
+            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+            BasicDBObject first = (BasicDBObject) times.get(0);
+            String date = first.get("starting_time").toString();
+        
+        //if it is normal field (not list-array)
+            //String date = this.followedUsersColl.findOne(query).get("starting_time").toString();           
+            
+        Date d = dateFormat.parse(date);
+        return d;
+    }
+    
+    public Date getTimeUserDisappeared(Long id) throws ParseException{
+        BasicDBObject query = new BasicDBObject(); 
+        query.put("id_str", id.toString());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
+        
+        //if it is a list of dates
+            DBCursor c = this.followedUsersColl.find(query);
+            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+            BasicDBObject first = (BasicDBObject) times.get(times.size()-1);
+            String date = first.get("finish_time").toString();
+        
+        //if it is normal field (not list-array)
+            //String date = this.followedUsersColl.findOne(query).get("finish_time").toString();
+        Date d = dateFormat.parse(date);
+        return d;
     }
     
 //    public List<String> deleteInactiveUsers(List<String> suspicious, int time){

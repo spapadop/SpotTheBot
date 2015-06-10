@@ -92,7 +92,7 @@ public class UserTracker {
         Date now = new Date();
         for (String id : suspicious) { //for every user that is suspicious
             
-            Date finishTime=new Date(now.getTime() + (45 * 60000));
+            Date finishTime=new Date(now.getTime() + (60 * 60000));
             if (!mongo.findFollowedUser(id)){ //new user
                 System.out.println("TIME TO ADD NEW USER TO FOLLOWED!");
                 BasicDBObject user = new BasicDBObject();

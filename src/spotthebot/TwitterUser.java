@@ -30,143 +30,158 @@ import twitter4j.User;
 public class TwitterUser {
 
     private Long id; //stores the userID
-    private int retweetsReceived; //number of times user's tweets were RTed
-    private Date lastRTed; //date of the last retweet received occured
-    private HashMap<Long, Integer> tweetsWithTimesRetweeted; //number of times each of his tweet is retweeted [TweetID - NoRTed]
+    private long tweets; // number of tweets the user did
+    private long retweets; //number of retweets the user did
+    private long retweetsReceived; //number of times user's tweets were RTed
+    private double retweetsTweetsRatio; //ratio of retweets done / tweets done
+    private double tweetsRetweeted;
+    private double avgTweetsPerHour;
+    private double avgRetweetsPerHour;
+    private double avgRtReceivedPerHour;
+    private HashMap<Long, Date> tweetsDate; //collection of tweets the user did, together with the date.
+    private HashMap<Long, Date> retweetsDate; //collection of retweets the user did, together with the date.
+    private HashMap<Long, Date> retweetsReceivedDate; //collection of retweets the user received, together with the date.
+    private long timeFollowed;
     
-    private static final int PACKAGE = 1; // time-repeat of checking task for updating list of potential spammers | 60.000 milliseconds = 1 minute
+    private static final int PACKAGE = 1; //package of characteristics checked
    
     /**
      * Construct a TwitterUser object.
-     * Set the retweets counter to 1.
      */
     public TwitterUser() {
         this.id = null;
-        this.retweetsReceived = 1;
-        this.lastRTed = null;
-        this.tweetsWithTimesRetweeted = new HashMap<>();
     }
 
     /**
-     * Construct a TwitterUser object.
-     * Set received retweets counter to 1, last retweeted to current date 
-     * and insert the retweet to the appropriate hashmap.
+     * Construct a TwitterUser object for a given userID.
      * 
-     * @param userID
-     * @param tweetID
-     * @param now 
+     * @param userId
      */
-    public TwitterUser(Long userID, Long tweetID, Date now) {
-        this.id = userID;
-        this.retweetsReceived = 1;
-        this.lastRTed = now;
-        this.tweetsWithTimesRetweeted = new HashMap<>();
-        this.tweetsWithTimesRetweeted.put(tweetID, 1);
+    public TwitterUser(Long userId) {
+        this.id = userId;
+        this.tweets=0;
+        this.retweets=0;
+        this.retweetsReceived=0;
+        this.retweetsTweetsRatio=0;
+        this.tweetsRetweeted=0;
+        this.avgTweetsPerHour=0;
+        this.avgRetweetsPerHour=0;
+        this.avgRtReceivedPerHour=0;
+        this.tweetsDate = new HashMap<>();
+        this.retweetsDate = new HashMap<>();
+        this.retweetsReceivedDate = new HashMap<>();
+        this.timeFollowed=0;
     }
-    
-    /**
-     * Updates data for current User.
-     * It assigns a new (current) date for the last retweet that the user got 
-     * and it increases the total number of retweets received.
-     * 
-     * @param tweetID
-     * @param at 
-     */
-    public void update(Long tweetID, Date at) {
-
-        this.setLastRTed(at); //update last retweet occured
-        this.increaseRetweetsReceived(); //incease total retweets received
-
-        //update the HashMap of tweets with number of their retweets.
-        if (this.tweetsWithTimesRetweeted.get(tweetID) == null) {
-            this.tweetsWithTimesRetweeted.put(tweetID, 1);
-        } else {
-            int value = this.tweetsWithTimesRetweeted.get(tweetID) + 1;
-            this.tweetsWithTimesRetweeted.put(tweetID, value);
-        }
-    }
-    
-    /**
-     * 
-     * @param user 
-     * @return  
-     */
-    public boolean checkUserDetails(DBObject user){
-        boolean verified  = objectBool(user.get("verified"));
-        int friends = Integer.parseInt(user.get("friends_count").toString());
-        int followers = Integer.parseInt(user.get("followers_count").toString());
-        double ratio = friendsFollowersRatio(friends, followers);
-        Long accountAge = setAccountAge(user.get("created_at").toString());
-        int favourites = Integer.parseInt(user.get("favourites_count").toString());
-//        boolean hasDescription = objectBool(user.get("description").toString());
-//        boolean geoEnabled = objectBool(user.get("geo_enabled").toString());
-//        boolean timeZone = objectBool(user.get("time_zone").toString());
-        boolean defaultProfile = objectBool(user.get("default_profile").toString());
-        boolean defaultAvatar = objectBool(user.get("default_profile_image").toString());
-        boolean isTranslator = objectBool(user.get("is_translator").toString());
-        int lists = Integer.parseInt(user.get("listed_count").toString());
-        boolean location = objectBool(user.get("is_translator").toString());
-        boolean isProtected = objectBool(user.get("protected").toString());
-        
-        System.out.println("1. verified: " + verified);
-        System.out.println("2. friends: " + friends);
-        System.out.println("3. followers: " + followers);
-        System.out.println("4. ratio: " + ratio);
-        System.out.println("5. accountAge: " + accountAge);
-        System.out.println("6. favourites: " + favourites);
-//        System.out.println("7. description: " + hasDescription);
-//        System.out.println("8. geoEnabled: " + geoEnabled);
-//        System.out.println("9. timeZone: " + timeZone);
-        System.out.println("10. profileOptimized: " + defaultProfile);
-        System.out.println("11. defaultAvatar: " + defaultAvatar);
-        System.out.println("12. isTranslator: " + isTranslator);
-        System.out.println("13. lists: " + lists);
-        System.out.println("14. location: " + location);
-        System.out.println("15. isProtected: " + isProtected);
-        
-        //********************************
-        //TODO: "screen_name": @sokpapadop
-        //********************************
          
-        switch(PACKAGE){ //checking in which variables package test we are.
-            case 1: 
-                return true;    //((!verified) && (ratio > 1.4) && (accountAge < 1000) && (favourites <10));
-            case 2:
-                return false;
-            case 3:
-                return false;
-            case 4: 
-                return false;
-            default:
-                return false;
-        }
+    public void addTweet(Long tweetId, Date at){
+        tweetsDate.put(tweetId, at);
+    }
+    
+    public void addRetweet(Long retweetId, Date at){
+        retweetsDate.put(retweetId, at);
+    }
+    
+    public void addRetweetReceived(Long rtReceivedId, Date at){
+        retweetsReceivedDate.put(rtReceivedId, at);
     }
     
     /**
-     * checks if a user is verified or not.
-     * 
-     * @param value
-     * @return true if verified, false if not.
+     * Calculate all remaining values based on current input, since its final.
      */
-    public boolean objectBool(Object value){
-
-        if(value.toString().equals("false")){
-            return false;
+    public void finished(Date arrived, Date left){
+        if(tweets !=0){
+            this.retweetsTweetsRatio = (double) retweets/tweets;
+        } else{
+            this.retweetsTweetsRatio = 0;
         }
-        return true;
-    }
         
-    /**
-     * 
-     * @param date1
-     * @param date2
-     * @param timeUnit
-     * @return 
-     */
-    public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
-        long diffInMillies = date2.getTime() - date1.getTime();
-        return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
+//        System.out.println("Arrived: " + arrived);
+//        System.out.println("Left: " + left);
+        timeFollowed = getDateDiff(arrived, left, TimeUnit.HOURS);
+        if(timeFollowed!=0){
+            this.avgTweetsPerHour = (double) tweets/timeFollowed;
+            this.avgRetweetsPerHour = (double) retweets/timeFollowed;
+            this.avgRtReceivedPerHour = (double) retweetsReceived/timeFollowed;
+        }
+        
+        
+//        for (Long tweetId : this.tweetsDate.keySet()) {
+//            if (retweetsReceivedDate.containsKey(tweetId))
+//                this.tweetsRetweeted ++;
+//        }
+        
+        if(!retweetsReceivedDate.isEmpty()){
+            tweetsRetweeted = tweets/retweetsReceivedDate.size();
+        }
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     /**
      * 
@@ -346,9 +361,24 @@ public class TwitterUser {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 //    //domain stuff
 //    public void calculateUniqueDomains(ArrayList<DBObject> tweets) throws URISyntaxException {
-//        
+//
 //        
 //        for (String url : uniqueURLs) {
 //            uniqueDomains.add(getDomainName(url));
@@ -366,10 +396,7 @@ public class TwitterUser {
 //        String domain = uri.getHost();
 //        return domain.startsWith("www.") ? domain.substring(4) : domain;
 //    }
-    
-    
 //    //doubles
-
 //    /**
 //     * Cleans tweets text from URLs and RT@ and keeps it pure text.
 //     *
@@ -393,8 +420,6 @@ public class TwitterUser {
 //            tweets.add(newTweet);
 //        }
 //    }
-    
-    
 //     /**
 //     * Using the levenshtein distance it calculates how many tweets are actually
 //     * duplicates.
@@ -429,43 +454,203 @@ public class TwitterUser {
 //        } else {
 //            copiedTweets = 0;
 //        }
-//        
+//
 //        
 //        return 0;
 //    }
-    
-    
     //length of dormancy period (date of first post - account creation date)
     
     
     
     
-    public Long getUserID() {
+    
+    
+    /**
+     * 
+     * @param date1
+     * @param date2
+     * @param timeUnit
+     * @return 
+     */
+    public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
+        long diffInMillies = date2.getTime() - date1.getTime();
+        return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
+    }
+    
+    /**
+     * Prints all available information for a user 
+     * as taken from his record in mongoDB.
+     * 
+     * @param user 
+     * @return true of false, depending on if he satisfies the given requirements. 
+     */
+    public boolean checkUserDetails(DBObject user){
+        boolean verified  = objectBool(user.get("verified"));
+        int friends = Integer.parseInt(user.get("friends_count").toString());
+        int followers = Integer.parseInt(user.get("followers_count").toString());
+        double ratio = friendsFollowersRatio(friends, followers);
+        Long accountAge = setAccountAge(user.get("created_at").toString());
+        int favourites = Integer.parseInt(user.get("favourites_count").toString());
+//        boolean hasDescription = objectBool(user.get("description").toString());
+//        boolean geoEnabled = objectBool(user.get("geo_enabled").toString());
+//        boolean timeZone = objectBool(user.get("time_zone").toString());
+        boolean defaultProfile = objectBool(user.get("default_profile").toString());
+        boolean defaultAvatar = objectBool(user.get("default_profile_image").toString());
+        boolean isTranslator = objectBool(user.get("is_translator").toString());
+        int lists = Integer.parseInt(user.get("listed_count").toString());
+        boolean location = objectBool(user.get("is_translator").toString());
+        boolean isProtected = objectBool(user.get("protected").toString());
+        
+        System.out.println("1. verified: " + verified);
+        System.out.println("2. friends: " + friends);
+        System.out.println("3. followers: " + followers);
+        System.out.println("4. ratio: " + ratio);
+        System.out.println("5. accountAge: " + accountAge);
+        System.out.println("6. favourites: " + favourites);
+//        System.out.println("7. description: " + hasDescription);
+//        System.out.println("8. geoEnabled: " + geoEnabled);
+//        System.out.println("9. timeZone: " + timeZone);
+        System.out.println("10. profileOptimized: " + defaultProfile);
+        System.out.println("11. defaultAvatar: " + defaultAvatar);
+        System.out.println("12. isTranslator: " + isTranslator);
+        System.out.println("13. lists: " + lists);
+        System.out.println("14. location: " + location);
+        System.out.println("15. isProtected: " + isProtected);
+        
+        //********************************
+        //TODO: "screen_name": @sokpapadop
+        //********************************
+         
+        switch(PACKAGE){ //checking in which variables package test we are.
+            case 1: 
+                return true;    //((!verified) && (ratio > 1.4) && (accountAge < 1000) && (favourites <10));
+            case 2:
+                return false;
+            case 3:
+                return false;
+            case 4: 
+                return false;
+            default:
+                return false;
+        }
+    }
+    
+    /**
+     * checks if a an object is true or not.
+     * 
+     * @param value
+     * @return true if verified, false if not.
+     */
+    public boolean objectBool(Object value){
+
+        if(value.toString().equals("false")){
+            return false;
+        }
+        return true;
+    }
+    
+    public Long getId() {
         return id;
     }
 
-    public void setUserID(Long userID) {
-        this.id = userID;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public Date getLastRTed() {
-        return this.lastRTed;
+    public long getTweets() {
+        return tweets;
     }
 
-    public void setLastRTed(Date now) {
-        this.lastRTed = now;
+    public void setTweets(long tweets) {
+        this.tweets = tweets;
     }
 
-    public int getRetweetsReceived() {
-        return this.retweetsReceived;
+    public long getRetweets() {
+        return retweets;
+    }
+
+    public void setRetweets(long retweets) {
+        this.retweets = retweets;
+    }
+
+    public long getRetweetsReceived() {
+        return retweetsReceived;
+    }
+
+    public void setRetweetsReceived(long retweetsReceived) {
+        this.retweetsReceived = retweetsReceived;
+    }
+
+    public double getRetweetsTweetsRatio() {
+        return retweetsTweetsRatio;
+    }
+
+    public void setRetweetsTweetsRatio(double retweetsTweetsRatio) {
+        this.retweetsTweetsRatio = retweetsTweetsRatio;
+    }
+
+    public double getAvgTweetsPerHour() {
+        return avgTweetsPerHour;
+    }
+
+    public void setAvgTweetsPerHour(double avgTweetsPerHour) {
+        this.avgTweetsPerHour = avgTweetsPerHour;
+    }
+
+    public double getAvgRetweetsPerHour() {
+        return avgRetweetsPerHour;
+    }
+
+    public void setAvgRetweetsPerHour(double avgRetweetsPerHour) {
+        this.avgRetweetsPerHour = avgRetweetsPerHour;
+    }
+
+    public double getAvgRtReceivedPerHour() {
+        return avgRtReceivedPerHour;
+    }
+
+    public void setAvgRtReceivedPerHour(double avgRtReceivedPerHour) {
+        this.avgRtReceivedPerHour = avgRtReceivedPerHour;
+    }
+
+    public HashMap<Long, Date> getTweetsDate() {
+        return tweetsDate;
+    }
+
+    public void setTweetsDate(HashMap<Long, Date> tweetsDate) {
+        this.tweetsDate = tweetsDate;
+    }
+
+    public HashMap<Long, Date> getRetweetsDate() {
+        return retweetsDate;
+    }
+
+    public void setRetweetsDate(HashMap<Long, Date> retweetsDate) {
+        this.retweetsDate = retweetsDate;
+    }
+
+    public HashMap<Long, Date> getRetweetsReceivedDate() {
+        return retweetsReceivedDate;
+    }
+
+    public void setRetweetsReceivedDate(HashMap<Long, Date> retweetsReceivedDate) {
+        this.retweetsReceivedDate = retweetsReceivedDate;
+    }
+
+    public long getTimeFollowed() {
+        return timeFollowed;
+    }
+
+    public void setTimeFollowed(long timeFollowed) {
+        this.timeFollowed = timeFollowed;
+    }
+
+    public double getTweetsRetweeted() {
+        return tweetsRetweeted;
+    }
+
+    public void setTweetsRetweeted(double tweetsRetweeted) {
+        this.tweetsRetweeted = tweetsRetweeted;
     }
     
-    public void increaseRetweetsReceived() {
-        this.retweetsReceived++;
-    }
-
-    public HashMap<Long, Integer> getTimesRetweeted() {
-        return this.tweetsWithTimesRetweeted;
-    }
-
 }
