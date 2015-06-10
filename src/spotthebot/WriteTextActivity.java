@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
  *
  * @author Sokratis
  */
-public class ResultsToFiles {
+public class WriteTextActivity {
     
     private static MongoDBHandler mongo;
     

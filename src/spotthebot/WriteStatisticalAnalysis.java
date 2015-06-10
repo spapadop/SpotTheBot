@@ -23,7 +23,7 @@ import java.util.Date;
  *
  * @author Sokratis
  */
-public class Statistics {
+public class WriteStatisticalAnalysis {
     
     private static MongoDBHandler mongo;
     private static ArrayList<TwitterUser> users;
