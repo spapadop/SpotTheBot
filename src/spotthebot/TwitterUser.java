@@ -32,16 +32,16 @@ public class TwitterUser {
     private Long id; //stores the userID
     private long tweets; // number of tweets the user did
     private long retweets; //number of retweets the user did
-    private long retweetsReceived; //number of times user's tweets were RTed
+    private long retweetsReceived; //number of times user's tweets were RTed === MAYBE WE WANT ALL RETWEETS AND NOT 1 FOR EACH
     private double retweetsTweetsRatio; //ratio of retweets done / tweets done
-    private double tweetsRetweeted;
-    private double avgTweetsPerHour;
-    private double avgRetweetsPerHour;
-    private double avgRtReceivedPerHour;
+    private double tweetsRetweeted; //number of user's tweets retweeted
+    private double avgTweetsPerHour; //average number of tweets done by user per hour
+    private double avgRetweetsPerHour; // average number of retweets done by user per hour
+    private double avgRtReceivedPerHour; // average number of retweets received by user per hour
     private HashMap<Long, Date> tweetsDate; //collection of tweets the user did, together with the date.
     private HashMap<Long, Date> retweetsDate; //collection of retweets the user did, together with the date.
     private HashMap<Long, Date> retweetsReceivedDate; //collection of retweets the user received, together with the date.
-    private long timeFollowed;
+    private long timeFollowed; // total time we followed the user (hours)
     
     private static final int PACKAGE = 1; //package of characteristics checked
    
@@ -116,71 +116,7 @@ public class TwitterUser {
     }
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // =========================================================================
     
     
     /**
@@ -228,11 +164,11 @@ public class TwitterUser {
             int replies=0, i=0;
             
             //TODO: WORK ON THESE!!!
-            double urlRatio;
-            HashSet<String> uniqueDomains;
-            int numberOfUniqueDomains; //facebook.com, twitter.com, youtube.com....
-            HashSet<String> uniqueURLs;
-            double domainRatio;
+//            double urlRatio;
+//            HashSet<String> uniqueDomains;
+//            int numberOfUniqueDomains; //facebook.com, twitter.com, youtube.com....
+//            HashSet<String> uniqueURLs;
+//            double domainRatio;
             
             HashMap<String, Integer> tweetsPerSource = new HashMap<>();
             
@@ -355,116 +291,7 @@ public class TwitterUser {
         }
         return sum/array.length;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-//    //domain stuff
-//    public void calculateUniqueDomains(ArrayList<DBObject> tweets) throws URISyntaxException {
-//
-//        
-//        for (String url : uniqueURLs) {
-//            uniqueDomains.add(getDomainName(url));
-//        }
-//        numberOfUniqueDomains = uniqueDomains.size();
-//        if (noURL != 0) {
-//            domainRatio = (double) numberOfUniqueDomains / noURL;
-//        } else {
-//            domainRatio = 0;
-//        }
-//    }
-//
-//    public static String getDomainName(String url) throws URISyntaxException {
-//        URI uri = new URI(url);
-//        String domain = uri.getHost();
-//        return domain.startsWith("www.") ? domain.substring(4) : domain;
-//    }
-//    //doubles
-//    /**
-//     * Cleans tweets text from URLs and RT@ and keeps it pure text.
-//     *
-//     * @param newTweet
-//     */
-//    public void addAndProcessTweet(String newTweet) {
-//
-//        String[] elements = newTweet.split("@");
-//        //@gregclermont no, there is not. ^TS
-//        if (elements.length != 0) {
-//            String cleanedTweet = "";
-//            for (int i = 0; i < elements.length; i++) {
-//                String[] newElements = elements[i].split(" ");
-//                for (int j = 1; j < newElements.length; j++) {
-//                    cleanedTweet += newElements[j] + " ";
-//                }
-//            }
-//            cleanedTweet = cleanedTweet.replaceAll("https?://\\S+\\s?", "");
-//            tweets.add(cleanedTweet);
-//        } else {
-//            tweets.add(newTweet);
-//        }
-//    }
-//     /**
-//     * Using the levenshtein distance it calculates how many tweets are actually
-//     * duplicates.
-//     */
-//    public int calculateCopies() {
-//
-//        if (!tweets.isEmpty()) {
-//            HashSet<String> uniqueTexts = new HashSet<>(); //used to store the unique texts of tweets
-//            boolean flag = false;
-//
-//            uniqueTexts.add(tweets.get(0));
-//
-//            for (int i = 1; i < tweets.size(); i++) {
-//
-//                for (String text : uniqueTexts) {
-//
-//                    int distance = LevenshteinDistance.computeDistance(tweets.get(i), text);
-//                    double normalized_distance = (double) distance / (tweets.get(i).length() + text.length());
-//
-//                    if (normalized_distance < 0.1) {
-//                        copiedTweets++;
-//                        flag = true;
-//                        break;
-//                    }
-//                }
-//
-//                if (!flag) {
-//                    uniqueTexts.add(tweets.get(i));
-//                    flag = false;
-//                }
-//            }
-//        } else {
-//            copiedTweets = 0;
-//        }
-//
-//        
-//        return 0;
-//    }
-    //length of dormancy period (date of first post - account creation date)
-    
-    
-    
-    
-    
-    
+       
     /**
      * 
      * @param date1

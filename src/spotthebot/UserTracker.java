@@ -92,9 +92,9 @@ public class UserTracker {
         Date now = new Date();
         for (String id : suspicious) { //for every user that is suspicious
             
-            Date finishTime=new Date(now.getTime() + (60 * 60000));
+            Date finishTime=new Date(now.getTime() + (60 * 60000)); //finish time is set as current + 1hour
             if (!mongo.findFollowedUser(id)){ //new user
-                System.out.println("TIME TO ADD NEW USER TO FOLLOWED!");
+                //System.out.println("TIME TO ADD NEW USER TO FOLLOWED!");
                 BasicDBObject user = new BasicDBObject();
                 user.put("id_str", id); //save user's id
                 //user.put("starting_time", now);   
@@ -112,7 +112,7 @@ public class UserTracker {
                 
                 
             } else {//user exists -> update finish time 
-                System.out.println("TIME TO [UPDATE] A FOLLOWED USER!");
+                //System.out.println("TIME TO [UPDATE] A FOLLOWED USER!");
                 //BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
                 //mongo.updateFinishTime(id, updated); 
                 //System.out.println(id + "==Old user updated finish time.");   

@@ -1,6 +1,5 @@
 package spotthebot;
 
-import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -85,6 +84,7 @@ class MongoDBHandler{
 
         retweetsColl.ensureIndex(new BasicDBObject("originalTweetID", 1));
         retweetsColl.ensureIndex(new BasicDBObject("originalUserID", 1));
+        retweetsColl.ensureIndex(new BasicDBObject("retweetedUserID", 1));
         //retweetsColl.ensureIndex(new BasicDBObject("created_at", 1));
         
         //--- For followed users crawling
@@ -292,13 +292,13 @@ class MongoDBHandler{
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
         
         //if it is a list of dates
-            DBCursor c = this.followedUsersColl.find(query);
-            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
-            BasicDBObject first = (BasicDBObject) times.get(0);
-            String date = first.get("starting_time").toString();
+//            DBCursor c = this.followedUsersColl.find(query);
+//            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+//            BasicDBObject first = (BasicDBObject) times.get(0);
+//            String date = first.get("starting_time").toString();
         
         //if it is normal field (not list-array)
-            //String date = this.followedUsersColl.findOne(query).get("starting_time").toString();           
+            String date = this.followedUsersColl.findOne(query).get("starting_time").toString();           
             
         Date d = dateFormat.parse(date);
         return d;
@@ -310,13 +310,13 @@ class MongoDBHandler{
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
         
         //if it is a list of dates
-            DBCursor c = this.followedUsersColl.find(query);
-            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
-            BasicDBObject first = (BasicDBObject) times.get(times.size()-1);
-            String date = first.get("finish_time").toString();
+//            DBCursor c = this.followedUsersColl.find(query);
+//            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+//            BasicDBObject first = (BasicDBObject) times.get(times.size()-1);
+//            String date = first.get("finish_time").toString();
         
         //if it is normal field (not list-array)
-            //String date = this.followedUsersColl.findOne(query).get("finish_time").toString();
+            String date = this.followedUsersColl.findOne(query).get("finish_time").toString();
         Date d = dateFormat.parse(date);
         return d;
     }

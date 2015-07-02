@@ -27,6 +27,7 @@ import twitter4j.json.DataObjectFactory;
 /**
  * Crawls random english tweets from Streaming API 
  * and stores them in appropriate mongoDB collections.
+ * It stores only when retweets occur and inserts the original tweet in DB.
  * 
  * @author Sokratis Papadopoulos
  */
@@ -94,7 +95,6 @@ public class Crawler extends TimerTask {
             public void onStatus(Status status) { //streaming tweets (not necessarily retweets)
                 try {
                     String json = DataObjectFactory.getRawJSON(status); //gets the raw json form of tweet
-                    
                     DBObject dbObj = (DBObject) JSON.parse(json);       //creates a DBObject out of json for mongoDB
                     JSONObject jObj = new JSONObject(dbObj.toString()); //creates a JSONObject out of the DBObject
 
@@ -110,13 +110,12 @@ public class Crawler extends TimerTask {
                         //====================================================//
                         
                         //===== INSERT RETWEET INTO RETWEETS COLLECTION ======//
-                        //storing necessary details for every retweet occured 
-                        //(like log file of RTs)
+                        //storing necessary details for every retweet occured (like log file of RTs)
                         BasicDBObject document = new BasicDBObject();
-                        document.put("originalTweetID", originalTweetID.toString()); //save original tweetID
-                        document.put("originalUserID", originalUserID.toString());   //save original userID 
-                        document.put("retweetedUserID", retweetedUserID.toString()); //save retweeter userID
-                        document.put("created_at", at);                   //save retweet date
+                        document.put("originalTweetID", originalTweetID.toString());    //save original tweetID
+                        document.put("originalUserID", originalUserID.toString());      //save original userID 
+                        document.put("retweetedUserID", retweetedUserID.toString());    //save retweeter userID
+                        document.put("created_at", at);                                 //save retweet date
                         
                         mongo.addObjectToRetweetsColl(document); //insert onto mongoDB retweet collection
                         
@@ -189,19 +188,6 @@ public class Crawler extends TimerTask {
         stream.addListener(listener);
         stream.filter(fq);
     }
-    
-    /**
-     * Computes the time difference between two dates.
-     * 
-     * @param date1
-     * @param date2
-     * @param timeUnit
-     * @return the time difference between dates
-     */
-    public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
-        long diffInMillies = date2.getTime() - date1.getTime();
-        return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
-    }
 
     /**
      * Runs every hour and checks for suspicious users to follow.
@@ -211,7 +197,7 @@ public class Crawler extends TimerTask {
      */
     @Override
     public void run() {
-        System.out.println(time + " ****** PERISTASIAKOS ELEGXOS ********");
+        System.out.println(time + " ****** CASUAL CONTROL ********");
         List<String> suspicious = mongo.findSuspiciousUsers();            
         
         if(!suspicious.isEmpty()){
