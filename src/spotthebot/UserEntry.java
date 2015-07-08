@@ -118,15 +118,15 @@ public class UserEntry {
     public void finish(){
         checkRtMinMax();
         checkRTrecMinMax();
-        if(lastRetweet!=null && firstRetweet!=null && getDateDiff(firstRetweet, lastRetweet, TimeUnit.HOURS)!=0)
-            avgRtPerHour = (float) retweets / getDateDiff(firstRetweet, lastRetweet, TimeUnit.HOURS);
-        else
-            avgRtPerHour =0;
+//        if(lastRetweet!=null && firstRetweet!=null && getDateDiff(firstRetweet, lastRetweet, TimeUnit.HOURS)!=0)
+            avgRtPerHour = (float) retweets / 49;
+        //else
+          //  avgRtPerHour =0;
         
-        if(firstRTreceived!=null && lastRTreceived!=null && getDateDiff(firstRTreceived, lastRTreceived, TimeUnit.HOURS)!=0)
-            avgRTrecPerHour = (float) RTreceived / getDateDiff(firstRTreceived, lastRTreceived, TimeUnit.HOURS);
-        else
-            avgRTrecPerHour =0;
+//        if(firstRTreceived!=null && lastRTreceived!=null && getDateDiff(firstRTreceived, lastRTreceived, TimeUnit.HOURS)!=0)
+            avgRTrecPerHour = (float) RTreceived / 49;
+        //else
+            //avgRTrecPerHour =0;
     }
     
     
