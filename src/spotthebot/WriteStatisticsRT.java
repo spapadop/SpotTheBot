@@ -54,6 +54,17 @@ public class WriteStatisticsRT {
             u.finish();
         }
         
+        System.out.println("size of hashmap: " + users.size());
+        
+        //checking if we missed some users
+//        DBCursor c = mongo.getUsersColl().find(); //get all (re)tweets in our database
+//        while (c.hasNext()) {
+//            DBObject u = c.next(); 
+//            long id = Long.parseLong(u.get("id_str").toString());
+//            if (!users.containsKey(id))
+//                System.out.println("User: "+ id + " does not exist !!!");
+//        }
+        
         PrintWriter writer = new PrintWriter("results.txt", "UTF-8"); 
         for (Map.Entry<Long, UserEntry> entry : users.entrySet()) {
             writer.println(entry.getKey() + " " + entry.getValue().getRetweets() 
@@ -66,6 +77,7 @@ public class WriteStatisticsRT {
                                           + " " + entry.getValue().getAvgRTrecPerHour()
             );
         }
+        writer.close();
                 
     }   
 }
