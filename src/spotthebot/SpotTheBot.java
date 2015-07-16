@@ -39,7 +39,7 @@ public class SpotTheBot {
 //        
 //        System.out.println("counter: " + count);
 //        System.out.println("size of hash: " + ids.size());
-          Analysis an = new Analysis();
+          ConvertToOccurrences an = new ConvertToOccurrences();
         
 //        Crawler crawl = new Crawler(); 
 //

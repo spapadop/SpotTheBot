@@ -6,7 +6,7 @@
 
 package spotthebot;
 
-import java.util.Date;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 /**
  *
@@ -21,11 +21,13 @@ public class TimeWindow {
     private int minRtPerHour;
     private int maxRtPerHour;
     private float avgRtPerHour;    
+    private double iqrRT;
     
     private int totalRetweetsReceived;
     private int minRTrecPerHour;
     private int maxRTrecPerHour;
     private float avgRTrecPerHour;
+    private double iqrRTrec;
     
     public TimeWindow(){
 //        this.windowID = -1;
@@ -33,12 +35,12 @@ public class TimeWindow {
 //        this.to = null;
         
         this.totalRetweets = 0;
-        this.minRtPerHour = 0;
+        this.minRtPerHour = Integer.MAX_VALUE;
         this.maxRtPerHour = 0;
         this.avgRtPerHour = 0;    
     
         this.totalRetweetsReceived = 0;
-        this.minRTrecPerHour = 0;
+        this.minRTrecPerHour = Integer.MAX_VALUE;
         this.maxRTrecPerHour = 0;
         this.avgRTrecPerHour = 0;
     }
@@ -49,16 +51,21 @@ public class TimeWindow {
 //        this.to = to;
         
         this.totalRetweets = 0;
-        this.minRtPerHour = 0;
+        this.minRtPerHour = Integer.MAX_VALUE;
         this.maxRtPerHour = 0;
         this.avgRtPerHour = 0;    
     
         this.totalRetweetsReceived = 0;
-        this.minRTrecPerHour = 0;
+        this.minRTrecPerHour = Integer.MAX_VALUE;
         this.maxRTrecPerHour = 0;
         this.avgRTrecPerHour = 0;
         
+        double[] dataRT = new double[5]; // obtain data here
+        double[] dataRTrec = new double[5]; // obtain data here
+        
         for(int i=0; i< chunks.length; i++){
+            dataRT[i] = chunks[i].getRetweets();
+            dataRTrec[i] = chunks[i].getRetweetsReceived();
             
             this.totalRetweets += chunks[i].getRetweets();
             this.totalRetweetsReceived += chunks[i].getRetweetsReceived();
@@ -78,17 +85,21 @@ public class TimeWindow {
             if(chunks[i].getRetweetsReceived() < this.minRTrecPerHour){
                 this.minRTrecPerHour = chunks[i].getRetweetsReceived();
             }
-            
         }
         
         this.avgRtPerHour =  (float) this.totalRetweets/5;
         this.avgRTrecPerHour = (float) this.totalRetweetsReceived/5;
-                
+        
+        DescriptiveStatistics dsRT = new DescriptiveStatistics(dataRT);
+        iqrRT = dsRT.getPercentile(75) - dsRT.getPercentile(25);
+        
+        DescriptiveStatistics dsRTrec = new DescriptiveStatistics(dataRTrec);
+        iqrRTrec = dsRTrec.getPercentile(75) - dsRTrec.getPercentile(25);
     }
     
     public String print(){
-        String result = totalRetweets + " " + minRtPerHour + " " + maxRtPerHour + " " + avgRtPerHour + " "
-                + totalRetweetsReceived + " " + minRTrecPerHour + " " + maxRTrecPerHour + " " + avgRTrecPerHour;
+        String result = totalRetweets + " " + minRtPerHour + " " + maxRtPerHour + " " + avgRtPerHour + " " + iqrRT + " "
+                + totalRetweetsReceived + " " + minRTrecPerHour + " " + maxRTrecPerHour + " " + avgRTrecPerHour + " " + iqrRTrec;
         
         return result;
     }

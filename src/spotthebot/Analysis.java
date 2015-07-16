@@ -38,13 +38,13 @@ public class Analysis {
         cursor = mongo.getRetweetsColl().find(); //get all retweets in our database
 
         userPerChunk = new HashMap<>(); 
-        writer = new PrintWriter("results.txt", "UTF-8");        
+        writer = new PrintWriter("results2.txt", "UTF-8");        
         
         chunkCounter=0;
         winCounter =0;
         recordCounter=0;
         last = new Date();
-        last.setHours(20); //set as the first occurance
+        last.setHours(23); //set as the first occurance 20 and 23
         format = new SimpleDateFormat("EEE MMM d HH:mm:ss Z YYYY"); //CHECK
         globalCounter=0;
         
@@ -70,7 +70,6 @@ public class Analysis {
             for(int i=0; i<chunks.length; i++){
                 chunks[i] = new TimeChunk();
             }
-            
             userPerChunk.put(id, chunks); 
         }
     }
@@ -113,6 +112,9 @@ public class Analysis {
      */
     private void calculateTimeWindow(){    
         winCounter++;
+//        if (winCounter==2)
+//            System.exit(1);
+        
         Iterator it = userPerChunk.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
@@ -159,6 +161,10 @@ public class Analysis {
         if(cursor.hasNext()){
             calculateChunk();
         } 
+    }
+    
+    private void addOneToValue(){
+        
     }
     
 }
