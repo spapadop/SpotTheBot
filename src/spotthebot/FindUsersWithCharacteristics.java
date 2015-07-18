@@ -7,10 +7,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 
 /**
  *
@@ -29,7 +27,7 @@ public class FindUsersWithCharacteristics {
         usersOverTwoMinRT = new HashSet<>();
         usersOverTenMaxRT = new HashSet<>();
         
-        File file = new File("H:\\Thesis\\runs\\run1\\analysis\\results-per-time-window.txt");
+        File file = new File("H:\\Thesis\\runs\\run2\\analysis\\results2-per-time-window.txt");
         BufferedReader reader = null;
 
         System.out.println("start reading...");
@@ -116,7 +114,7 @@ public class FindUsersWithCharacteristics {
         while(it.hasNext()){
             Long id = it.next();
             if(set2.contains(id))
-                writer.println(it.next());
+                writer.println(id);
         }
         writer.close();
     }
@@ -134,7 +132,7 @@ public class FindUsersWithCharacteristics {
         while(it.hasNext()){
             Long id = it.next();
             if(set2.contains(id) && set3.contains(id))
-                writer.println(it.next());
+                writer.println(id);
         }
         writer.close();
     }
