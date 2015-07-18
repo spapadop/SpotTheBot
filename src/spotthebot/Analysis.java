@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public class Analysis {
     
-    private static MongoDBHandler mongo;
+    private static MongoDBHandler mongo; //used to connect with mongoDB data
     private static HashMap<Long, TimeChunk[]> userPerChunk; //stores the 5 time-window chunks for each user
     private final DBCursor cursor; //used for iterating through retweets in db
         
@@ -161,56 +161,5 @@ public class Analysis {
         if(cursor.hasNext()){
             calculateChunk();
         } 
-    }
-    
-    private void addOneToValue(){
-        
-    }
-    
+    }    
 }
-
-
-
-    
-//    /**
-//     * Prints the final results for each user in style of:
-//     * 'user_id' [tab] 'chunk1-RTs' [space] 'chunk1-RTrec' [space] 'chunk2-RTs' [space] 'chunk2-RTrec' ...
-//     */
-//    private void printResults() throws FileNotFoundException, UnsupportedEncodingException{
-//        PrintWriter writer = new PrintWriter("results.txt", "UTF-8");                
-//        userDataString.values().stream().forEach((value) -> {
-//            writer.println(value);
-//        });
-//        writer.close();
-//    }
-
-
-//    /**
-//     * 
-//     */
-//    private void firstPrinting(){
-//        //System.out.println("first printing... ");
-//        Iterator it = userPerChunk.entrySet().iterator();
-//        while (it.hasNext()) {
-//            Map.Entry pair = (Map.Entry)it.next();
-//            Long id = (long) pair.getKey();
-//            TimeChunk[] chunks = (TimeChunk[]) pair.getValue();
-//            String temp = "" + id + "\t";
-//            for(int i=0; i<chunks.length; i++){
-//               temp += chunks[i].getRetweets() + " " + chunks[i].getRetweetsReceived() + " ";
-//            }
-//            //userDataString.put(id, temp);
-//        }
-//    }
-    
-//    private void chunkPrint(){
-//        //System.out.println("chunk printing... ");
-//        Iterator it = userPerChunk.entrySet().iterator();
-//        while (it.hasNext()) {
-//            Map.Entry pair = (Map.Entry)it.next();
-//            Long id = (long) pair.getKey();
-//            TimeChunk[] chunks = (TimeChunk[]) pair.getValue();
-//            String test = userDataString.get(id) + chunks[4].getRetweets() + " " + chunks[4].getRetweetsReceived() + " ";
-//            userDataString.replace(id, test);
-//        }
-//    }

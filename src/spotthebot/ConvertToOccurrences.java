@@ -44,7 +44,7 @@ public class ConvertToOccurrences {
         avgRetweetsRec = new HashMap<>();
         iqrRetweetsRec = new HashMap<>();
         
-        File file = new File("results2.txt");
+        File file = new File("results.txt");
         BufferedReader reader = null;
 
         System.out.println("start reading...");
@@ -54,18 +54,7 @@ public class ConvertToOccurrences {
 
             while ((text = reader.readLine()) != null) {
                 String[] splited = text.split("\\s+");
-                
-                addToMap(Integer.parseInt(splited[2]), retweets);
-                addToMap(Integer.parseInt(splited[3]), minRetweets);
-                addToMap(Integer.parseInt(splited[4]), maxRetweets);
-                addToMapF(Float.parseFloat(splited[5]), avgRetweets);
-                addToMapF(Float.parseFloat(splited[6]), iqrRetweets);
-                
-                addToMap(Integer.parseInt(splited[7]), retweetsRec);
-                addToMap(Integer.parseInt(splited[8]), minRetweetsRec);
-                addToMap(Integer.parseInt(splited[9]), maxRetweetsRec);
-                addToMapF(Float.parseFloat(splited[10]), avgRetweetsRec);
-                addToMapF(Float.parseFloat(splited[11]), iqrRetweetsRec);
+                addToMaps(splited);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -84,6 +73,29 @@ public class ConvertToOccurrences {
         startWriting();
     }
     
+    /**
+     * 
+     * @param splited 
+     */
+    private void addToMaps(String[] splited){
+        addToMap(Integer.parseInt(splited[2]), retweets);
+        addToMap(Integer.parseInt(splited[3]), minRetweets);
+        addToMap(Integer.parseInt(splited[4]), maxRetweets);
+        addToMapF(Float.parseFloat(splited[5]), avgRetweets);
+        addToMapF(Float.parseFloat(splited[6]), iqrRetweets);
+
+        addToMap(Integer.parseInt(splited[7]), retweetsRec);
+        addToMap(Integer.parseInt(splited[8]), minRetweetsRec);
+        addToMap(Integer.parseInt(splited[9]), maxRetweetsRec);
+        addToMapF(Float.parseFloat(splited[10]), avgRetweetsRec);
+        addToMapF(Float.parseFloat(splited[11]), iqrRetweetsRec);
+    }
+    
+    /**
+     * 
+     * @throws FileNotFoundException
+     * @throws UnsupportedEncodingException 
+     */
     private void startWriting() throws FileNotFoundException, UnsupportedEncodingException{
         print(retweets, "Retweets");
         print(minRetweets, "MinRetweets");
@@ -98,6 +110,13 @@ public class ConvertToOccurrences {
         printF(iqrRetweetsRec, "IqrRetweetsRec");
     }
     
+    /**
+     * 
+     * @param map
+     * @param type
+     * @throws FileNotFoundException
+     * @throws UnsupportedEncodingException 
+     */
     private void print(HashMap<Integer, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException{
         writer = new PrintWriter("results" + type +".txt", "UTF-8");  
         Iterator it = map.entrySet().iterator();
@@ -109,6 +128,13 @@ public class ConvertToOccurrences {
         writer.close();
     }
     
+    /**
+     * 
+     * @param map
+     * @param type
+     * @throws FileNotFoundException
+     * @throws UnsupportedEncodingException 
+     */
     private void printF(HashMap<Float, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException{
         writer = new PrintWriter("results" + type +".txt", "UTF-8");  
         Iterator it = map.entrySet().iterator();
@@ -120,6 +146,11 @@ public class ConvertToOccurrences {
         writer.close();
     }
     
+    /**
+     * 
+     * @param key
+     * @param map 
+     */
     private void addToMap(Integer key, HashMap<Integer,Integer> map){
         if (map.containsKey(key)){
             map.replace(key, map.get(key)+1);
@@ -128,6 +159,11 @@ public class ConvertToOccurrences {
         }
     }
     
+    /**
+     * 
+     * @param key
+     * @param map 
+     */
     private void addToMapF(Float key, HashMap<Float,Integer> map){
         if (map.containsKey(key)){
             map.replace(key, map.get(key)+1);
