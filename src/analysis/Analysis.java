@@ -1,7 +1,8 @@
-package spotthebot;
+package analysis;
 
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import crawling.MongoDBHandler;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;

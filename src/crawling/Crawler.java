@@ -1,4 +1,4 @@
-package spotthebot;
+package crawling;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;

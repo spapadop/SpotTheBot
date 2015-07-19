@@ -1,4 +1,4 @@
-package spotthebot;
+package crawling;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Sokratis Papadopoulos
  */
-class MongoDBHandler{
+public class MongoDBHandler{
 	
     private MongoClient m;
     

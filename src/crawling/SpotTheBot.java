@@ -1,5 +1,6 @@
-package spotthebot;
+package crawling;
 
+import analysis.FindUsersWithCharacteristics;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;

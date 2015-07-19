@@ -4,23 +4,20 @@
  * and open the template in the editor.
  */
 
-package spotthebot;
+package analysis;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import crawling.MongoDBHandler;
+import crawling.TwitterUser;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
 
 /**
  *

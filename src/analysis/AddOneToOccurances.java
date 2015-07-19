@@ -1,4 +1,4 @@
-package spotthebot;
+package analysis;
 
 import java.io.File;
 import java.io.FileNotFoundException;

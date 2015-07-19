@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package spotthebot;
+package analysis;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
