@@ -1,6 +1,7 @@
 package crawling;
 
 import analysis.FindUsersWithCharacteristics;
+import analysis.MetricsPerFeature;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
@@ -42,7 +43,9 @@ public class SpotTheBot {
 //        System.out.println("size of hash: " + ids.size());
 //          ConvertToOccurrences an = new ConvertToOccurrences();
         
-        FindUsersWithCharacteristics a = new FindUsersWithCharacteristics();
+//        FindUsersWithCharacteristics a = new FindUsersWithCharacteristics();
+        
+        MetricsPerFeature da = new MetricsPerFeature();
         
 //        Crawler crawl = new Crawler(); 
 //

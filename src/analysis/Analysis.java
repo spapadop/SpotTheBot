@@ -39,7 +39,7 @@ public class Analysis {
         cursor = mongo.getRetweetsColl().find(); //get all retweets in our database
 
         userPerChunk = new HashMap<>(); 
-        writer = new PrintWriter("results2.txt", "UTF-8");        
+        writer = new PrintWriter("results.txt", "UTF-8");        
         
         chunkCounter=0;
         winCounter =0;
