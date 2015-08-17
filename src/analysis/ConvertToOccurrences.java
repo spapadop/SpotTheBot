@@ -10,9 +10,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Scanner;
 
 /**
- *
+ * Converts the data we have for each time window into a text file of occurences.
+ * Example: 0 -> 1320, 1 -> 233, 2 -> 132, 3 -> 19...
+ * 
  * @author Sokratis Papadopoulos
  */
 public class ConvertToOccurrences {
@@ -31,7 +34,7 @@ public class ConvertToOccurrences {
     
     private PrintWriter writer;
     
-    public ConvertToOccurrences() throws FileNotFoundException, UnsupportedEncodingException {
+    public ConvertToOccurrences() throws FileNotFoundException, UnsupportedEncodingException, IOException {
         retweets = new HashMap<>();
         minRetweets = new HashMap<>();
         maxRetweets = new HashMap<>();
@@ -44,7 +47,7 @@ public class ConvertToOccurrences {
         avgRetweetsRec = new HashMap<>();
         iqrRetweetsRec = new HashMap<>();
         
-        File file = new File("results.txt");
+        File file = new File("results-per-time-window.txt");
         BufferedReader reader = null;
 
         System.out.println("start reading...");
@@ -56,10 +59,6 @@ public class ConvertToOccurrences {
                 String[] splited = text.split("\\s+");
                 addToMaps(splited);
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
         } finally {
             try {
                 if (reader != null) {
@@ -122,7 +121,7 @@ public class ConvertToOccurrences {
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue());
+            writer.println(pair.getKey() + "\t" + pair.getValue()+1); //+1 to avoid zeros
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();
@@ -140,7 +139,7 @@ public class ConvertToOccurrences {
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue());
+            writer.println(pair.getKey() + "\t" + pair.getValue()+1); //+1 to avoid zeros
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();

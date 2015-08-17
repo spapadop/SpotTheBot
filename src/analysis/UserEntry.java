@@ -4,8 +4,9 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
- * @author Sokratis
+ * Stores all information regarding a user found in our database.
+ * 
+ * @author Sokratis Papadopoulos
  */
 public class UserEntry {
     private int retweets;

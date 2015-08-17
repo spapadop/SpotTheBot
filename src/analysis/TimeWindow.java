@@ -1,16 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package analysis;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 /**
- *
- * @author Sokratis
+ * Stores all information regarding a time window (5 hours) for a user.
+ * 
+ * @author Sokratis Papadopoulos
  */
 public class TimeWindow {
 //    private int windowID;

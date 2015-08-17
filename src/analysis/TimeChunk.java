@@ -2,6 +2,7 @@ package analysis;
 
 /**
  * The data that corresponds to a user at a specific time chunk (1 hour).
+ * 
  * @author Sokratis Papadopoulos
  */
 public class TimeChunk {

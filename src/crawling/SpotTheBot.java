@@ -1,11 +1,15 @@
 package crawling;
 
-import analysis.FindUsersWithCharacteristics;
+import analysis.UsersWithCharacteristics;
 import analysis.MetricsPerFeature;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.LineNumberReader;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
@@ -24,7 +28,7 @@ public class SpotTheBot {
     
     private static final int TASK_REPEAT = 3600000; // one hour: 3600000 | time-repeat of checking task for updating list of potential spammers | 60.000 milliseconds = 1 minute
     
-    public static void main(String[] args) throws JSONException, InterruptedException, MongoException, UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException {
+    public static void main(String[] args) throws JSONException, InterruptedException, MongoException, UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException {
    
 //        MongoDBHandler mongo = new MongoDBHandler();
 //        HashSet<Long> ids = new HashSet<>();
@@ -43,9 +47,12 @@ public class SpotTheBot {
 //        System.out.println("size of hash: " + ids.size());
 //          ConvertToOccurrences an = new ConvertToOccurrences();
         
-//        FindUsersWithCharacteristics a = new FindUsersWithCharacteristics();
+//        UsersWithCharacteristics a = new UsersWithCharacteristics();
+        //RemoveZeroEntries ss = new RemoveZeroEntries();
+        //count howmany lines
+        //countLines("C:\\Users\\sokpa\\Documents\\GitHub\\SpotTheBot\\clearResults2.txt");
+        //MetricsPerFeature da = new MetricsPerFeature();
         
-        MetricsPerFeature da = new MetricsPerFeature();
         
 //        Crawler crawl = new Crawler(); 
 //
@@ -54,4 +61,6 @@ public class SpotTheBot {
 //        time.schedule(crawl, 0, TASK_REPEAT);
         
     }
+    
+    
 }
