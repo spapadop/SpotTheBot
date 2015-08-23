@@ -20,10 +20,10 @@ import twitter4j.JSONObject;
 import twitter4j.User;
 
 /**
- * Represents a Twitter User with the main data that we desire.
- * It stores userID, the number of retweets he received, the date when he 
- * was lastly retweeted and the number of retweets he got per tweet he did.
- * 
+ * Represents a Twitter User with the main data that we desire. It stores
+ * userID, the number of retweets he received, the date when he was lastly
+ * retweeted and the number of retweets he got per tweet he did.
+ *
  * @author Sokratis Papadopoulos
  */
 public class TwitterUser {
@@ -41,9 +41,9 @@ public class TwitterUser {
     private HashMap<Long, Date> retweetsDate; //collection of retweets the user did, together with the date.
     private HashMap<Long, Date> retweetsReceivedDate; //collection of retweets the user received, together with the date.
     private long timeFollowed; // total time we followed the user (hours)
-    
+
     private static final int PACKAGE = 1; //package of characteristics checked
-   
+
     /**
      * Construct a TwitterUser object.
      */
@@ -53,75 +53,70 @@ public class TwitterUser {
 
     /**
      * Construct a TwitterUser object for a given userID.
-     * 
+     *
      * @param userId
      */
     public TwitterUser(Long userId) {
         this.id = userId;
-        this.tweets=0;
-        this.retweets=0;
-        this.retweetsReceived=0;
-        this.retweetsTweetsRatio=0;
-        this.tweetsRetweeted=0;
-        this.avgTweetsPerHour=0;
-        this.avgRetweetsPerHour=0;
-        this.avgRtReceivedPerHour=0;
+        this.tweets = 0;
+        this.retweets = 0;
+        this.retweetsReceived = 0;
+        this.retweetsTweetsRatio = 0;
+        this.tweetsRetweeted = 0;
+        this.avgTweetsPerHour = 0;
+        this.avgRetweetsPerHour = 0;
+        this.avgRtReceivedPerHour = 0;
         this.tweetsDate = new HashMap<>();
         this.retweetsDate = new HashMap<>();
         this.retweetsReceivedDate = new HashMap<>();
-        this.timeFollowed=0;
+        this.timeFollowed = 0;
     }
-         
-    public void addTweet(Long tweetId, Date at){
+
+    public void addTweet(Long tweetId, Date at) {
         tweetsDate.put(tweetId, at);
     }
-    
-    public void addRetweet(Long retweetId, Date at){
+
+    public void addRetweet(Long retweetId, Date at) {
         retweetsDate.put(retweetId, at);
     }
-    
-    public void addRetweetReceived(Long rtReceivedId, Date at){
+
+    public void addRetweetReceived(Long rtReceivedId, Date at) {
         retweetsReceivedDate.put(rtReceivedId, at);
     }
-    
+
     /**
      * Calculate all remaining values based on current input, since its final.
      */
-    public void finished(Date arrived, Date left){
-        if(tweets !=0){
-            this.retweetsTweetsRatio = (double) retweets/tweets;
-        } else{
+    public void finished(Date arrived, Date left) {
+        if (tweets != 0) {
+            this.retweetsTweetsRatio = (double) retweets / tweets;
+        } else {
             this.retweetsTweetsRatio = 0;
         }
-        
+
 //        System.out.println("Arrived: " + arrived);
 //        System.out.println("Left: " + left);
         timeFollowed = getDateDiff(arrived, left, TimeUnit.HOURS);
-        if(timeFollowed!=0){
-            this.avgTweetsPerHour = (double) tweets/timeFollowed;
-            this.avgRetweetsPerHour = (double) retweets/timeFollowed;
-            this.avgRtReceivedPerHour = (double) retweetsReceived/timeFollowed;
+        if (timeFollowed != 0) {
+            this.avgTweetsPerHour = (double) tweets / timeFollowed;
+            this.avgRetweetsPerHour = (double) retweets / timeFollowed;
+            this.avgRtReceivedPerHour = (double) retweetsReceived / timeFollowed;
         }
-        
-        
+
 //        for (Long tweetId : this.tweetsDate.keySet()) {
 //            if (retweetsReceivedDate.containsKey(tweetId))
 //                this.tweetsRetweeted ++;
 //        }
-        
-        if(!retweetsReceivedDate.isEmpty()){
-            tweetsRetweeted = tweets/retweetsReceivedDate.size();
+        if (!retweetsReceivedDate.isEmpty()) {
+            tweetsRetweeted = tweets / retweetsReceivedDate.size();
         }
     }
-    
-    
+
     // =========================================================================
-    
-    
     /**
-     * 
+     *
      * @param createdAge
-     * @return 
+     * @return
      */
     public Long setAccountAge(String createdAge) {
 
@@ -130,7 +125,7 @@ public class TwitterUser {
             Date accountCreationTime = dateFormat.parse(createdAge);
             Date currentTime = new Date();
             dateFormat.format(currentTime);
-            
+
             return getDateDiff(accountCreationTime, currentTime, TimeUnit.DAYS);
 
         } catch (ParseException ex) {
@@ -138,43 +133,43 @@ public class TwitterUser {
         }
         return null;
     }
-    
-        
+
     /**
      * Calculates the friends/followers ratio
+     *
      * @return the ratio
      */
-    public double friendsFollowersRatio(int friends, int followers){
-                         
-        return (double) friends/followers;
+    public double friendsFollowersRatio(int friends, int followers) {
+
+        return (double) friends / followers;
     }
-    
+
     /**
      * TODO: work on this function. Checking some variables regarding tweets
+     *
      * @param tweets
-     * @return 
+     * @return
      */
     public boolean checkTweetsDetails(ArrayList<DBObject> tweets) {
-        
+
         if (!tweets.isEmpty()) {
             int[] mentions = new int[tweets.size()];
             int[] hashtags = new int[tweets.size()];
             int[] urls = new int[tweets.size()];
-            int replies=0, i=0;
-            
+            int replies = 0, i = 0;
+
             //TODO: WORK ON THESE!!!
 //            double urlRatio;
 //            HashSet<String> uniqueDomains;
 //            int numberOfUniqueDomains; //facebook.com, twitter.com, youtube.com....
 //            HashSet<String> uniqueURLs;
 //            double domainRatio;
-            
             HashMap<String, Integer> tweetsPerSource = new HashMap<>();
-            
-            for(DBObject tweet: tweets){
+
+            for (DBObject tweet : tweets) {
                 try {
                     JSONObject jobj = new JSONObject(tweet.toString());
-                    
+
                     //======= GETTING REPLY_TO_STATUS (true/false)=======
                     if (tweet.get("in_reply_to_status_id_str") != null) {
                         replies++;
@@ -183,16 +178,16 @@ public class TwitterUser {
                     String source = tweet.get("source").toString();
                     org.jsoup.nodes.Document doc = Jsoup.parse(source);
                     Element link = doc.select("a").first();
-                    String sourceName = link.text();            
+                    String sourceName = link.text();
 
                     if (tweetsPerSource.containsKey(sourceName)) {
                         tweetsPerSource.put(sourceName, tweetsPerSource.get(sourceName) + 1);
                     } else {
                         tweetsPerSource.put(sourceName, 1);
                     }
-                    
+
                     JSONObject entities = jobj.getJSONObject("entities"); //getting inside "entities" in json
-                    
+
                     //======= GETTING MENTIONS =======
                     JSONArray mentionArray = entities.getJSONArray("user_mentions");
                     mentions[i] = mentionArray.length();
@@ -207,31 +202,26 @@ public class TwitterUser {
 
                     //======= GETTING EXPANDED URLs =======
                     if (urls[i] != 0) { //if URLs exist, it takes the expanded version of them
-                        
+
                         String[] expanded_url = new String[urlArray.length()];
                         for (int j = 0; j < urlArray.length(); j++) {
                             expanded_url[j] = urlArray.getJSONObject(j).getString("expanded_url");
                         }
                     }
-                    
-                    
+
                     //do something with text
                     //tweet.addAndProcessTweet(jobj.getString("text"));
-                    
-                    
-                    
                     i++;
                 } catch (JSONException ex) {
                     Logger.getLogger(TwitterUser.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            
-            
+
             double avHashtags = calcAverage(hashtags);
             double avURLs = calcAverage(urls);
             double avMentions = calcAverage(mentions);
             String source = calculateMostFrequentSource(tweetsPerSource);
-            
+
             System.out.println("1. mentions: " + avMentions);
             System.out.println("2. hashtags: " + avHashtags);
             System.out.println("3. urls: " + avURLs);
@@ -247,21 +237,22 @@ public class TwitterUser {
 //            System.out.println("13. lists: " + lists);
 //            System.out.println("14. location: " + location);
 //            System.out.println("15. isProtected: " + isProtected);
-            
-            
-            return ( (avHashtags >= 4) && (avURLs >= 1) && (avMentions >= 0.2) );
-            
+
+            return ((avHashtags >= 4) && (avURLs >= 1) && (avMentions >= 0.2));
+
         } else {
             return false;
         }
     }
-    
+
     /**
      * calculates the most frequent source for the user after examining all the
      * sources that he used.
+     *
      * @param tweetsPerSource
+     * @return
      */
-    public String calculateMostFrequentSource(HashMap<String,Integer> tweetsPerSource) {
+    public String calculateMostFrequentSource(HashMap<String, Integer> tweetsPerSource) {
         Integer maxFrequency = -1;
         String mostFrequentSource = null;
         Iterator it = tweetsPerSource.entrySet().iterator();
@@ -276,42 +267,42 @@ public class TwitterUser {
         return mostFrequentSource;
     }
 
-    
     /**
-     * 
+     *
      * @param array
-     * @return 
+     * @return
      */
-    private double calcAverage(int[] array){
-        
-        double sum=0;
+    private double calcAverage(int[] array) {
+
+        double sum = 0;
         for (int j = 0; j < array.length; j++) {
-            sum+= array[j];
+            sum += array[j];
         }
-        return sum/array.length;
+        return sum / array.length;
     }
-       
+
     /**
-     * 
+     *
      * @param date1
      * @param date2
      * @param timeUnit
-     * @return 
+     * @return
      */
     public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
         long diffInMillies = date2.getTime() - date1.getTime();
         return timeUnit.convert(diffInMillies, TimeUnit.MILLISECONDS);
     }
-    
+
     /**
-     * Prints all available information for a user 
-     * as taken from his record in mongoDB.
-     * 
-     * @param user 
-     * @return true of false, depending on if he satisfies the given requirements. 
+     * Prints all available information for a user as taken from his record in
+     * mongoDB.
+     *
+     * @param user
+     * @return true of false, depending on if he satisfies the given
+     * requirements.
      */
-    public boolean checkUserDetails(DBObject user){
-        boolean verified  = objectBool(user.get("verified"));
+    public boolean checkUserDetails(DBObject user) {
+        boolean verified = objectBool(user.get("verified"));
         int friends = Integer.parseInt(user.get("friends_count").toString());
         int followers = Integer.parseInt(user.get("followers_count").toString());
         double ratio = friendsFollowersRatio(friends, followers);
@@ -326,7 +317,7 @@ public class TwitterUser {
         int lists = Integer.parseInt(user.get("listed_count").toString());
         boolean location = objectBool(user.get("is_translator").toString());
         boolean isProtected = objectBool(user.get("protected").toString());
-        
+
         System.out.println("1. verified: " + verified);
         System.out.println("2. friends: " + friends);
         System.out.println("3. followers: " + followers);
@@ -342,39 +333,38 @@ public class TwitterUser {
         System.out.println("13. lists: " + lists);
         System.out.println("14. location: " + location);
         System.out.println("15. isProtected: " + isProtected);
-        
+
         //********************************
         //TODO: "screen_name": @sokpapadop
         //********************************
-         
-        switch(PACKAGE){ //checking in which variables package test we are.
-            case 1: 
+        switch (PACKAGE) { //checking in which variables package test we are.
+            case 1:
                 return true;    //((!verified) && (ratio > 1.4) && (accountAge < 1000) && (favourites <10));
             case 2:
                 return false;
             case 3:
                 return false;
-            case 4: 
+            case 4:
                 return false;
             default:
                 return false;
         }
     }
-    
+
     /**
      * checks if a an object is true or not.
-     * 
+     *
      * @param value
      * @return true if verified, false if not.
      */
-    public boolean objectBool(Object value){
+    public boolean objectBool(Object value) {
 
-        if(value.toString().equals("false")){
+        if (value.toString().equals("false")) {
             return false;
         }
         return true;
     }
-    
+
     public Long getId() {
         return id;
     }
@@ -478,5 +468,5 @@ public class TwitterUser {
     public void setTweetsRetweeted(double tweetsRetweeted) {
         this.tweetsRetweeted = tweetsRetweeted;
     }
-    
+
 }

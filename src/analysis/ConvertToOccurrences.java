@@ -13,40 +13,40 @@ import java.util.Map;
 import java.util.Scanner;
 
 /**
- * Converts the data we have for each time window into a text file of occurences.
- * Example: 0 -> 1320, 1 -> 233, 2 -> 132, 3 -> 19...
- * 
+ * Converts the data we have for each time window into a text file of
+ * occurences. Example: 0 -> 1320, 1 -> 233, 2 -> 132, 3 -> 19...
+ *
  * @author Sokratis Papadopoulos
  */
 public class ConvertToOccurrences {
-    
+
     private final HashMap<Integer, Integer> retweets;
     private final HashMap<Integer, Integer> minRetweets;
     private final HashMap<Integer, Integer> maxRetweets;
     private final HashMap<Float, Integer> avgRetweets;
     private final HashMap<Float, Integer> iqrRetweets;
-    
+
     private final HashMap<Integer, Integer> retweetsRec;
     private final HashMap<Integer, Integer> minRetweetsRec;
     private final HashMap<Integer, Integer> maxRetweetsRec;
     private final HashMap<Float, Integer> avgRetweetsRec;
     private final HashMap<Float, Integer> iqrRetweetsRec;
-    
+
     private PrintWriter writer;
-    
+
     public ConvertToOccurrences() throws FileNotFoundException, UnsupportedEncodingException, IOException {
         retweets = new HashMap<>();
         minRetweets = new HashMap<>();
         maxRetweets = new HashMap<>();
         avgRetweets = new HashMap<>();
         iqrRetweets = new HashMap<>();
-        
+
         retweetsRec = new HashMap<>();
         minRetweetsRec = new HashMap<>();
         maxRetweetsRec = new HashMap<>();
         avgRetweetsRec = new HashMap<>();
         iqrRetweetsRec = new HashMap<>();
-        
+
         File file = new File("results-per-time-window.txt");
         BufferedReader reader = null;
 
@@ -68,15 +68,15 @@ public class ConvertToOccurrences {
             }
         }
         System.out.println("finished reading...");
-        
+
         startWriting();
     }
-    
+
     /**
-     * 
-     * @param splited 
+     *
+     * @param splited
      */
-    private void addToMaps(String[] splited){
+    private void addToMaps(String[] splited) {
         addToMap(Integer.parseInt(splited[2]), retweets);
         addToMap(Integer.parseInt(splited[3]), minRetweets);
         addToMap(Integer.parseInt(splited[4]), maxRetweets);
@@ -89,86 +89,86 @@ public class ConvertToOccurrences {
         addToMapF(Float.parseFloat(splited[10]), avgRetweetsRec);
         addToMapF(Float.parseFloat(splited[11]), iqrRetweetsRec);
     }
-    
+
     /**
-     * 
+     *
      * @throws FileNotFoundException
-     * @throws UnsupportedEncodingException 
+     * @throws UnsupportedEncodingException
      */
-    private void startWriting() throws FileNotFoundException, UnsupportedEncodingException{
+    private void startWriting() throws FileNotFoundException, UnsupportedEncodingException {
         print(retweets, "Retweets");
         print(minRetweets, "MinRetweets");
         print(maxRetweets, "MaxRetweets");
         printF(avgRetweets, "AvgRetweets");
         printF(iqrRetweets, "IqrRetweets");
-        
+
         print(retweetsRec, "RetweetsRec");
         print(minRetweetsRec, "MinRetweetsRec");
         print(maxRetweetsRec, "MaxRetweetsRec");
         printF(avgRetweetsRec, "AvgRetweetsRec");
         printF(iqrRetweetsRec, "IqrRetweetsRec");
     }
-    
+
     /**
-     * 
+     *
      * @param map
      * @param type
      * @throws FileNotFoundException
-     * @throws UnsupportedEncodingException 
+     * @throws UnsupportedEncodingException
      */
-    private void print(HashMap<Integer, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException{
-        writer = new PrintWriter("results" + type +".txt", "UTF-8");  
+    private void print(HashMap<Integer, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException {
+        writer = new PrintWriter("results" + type + ".txt", "UTF-8");
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue()+1); //+1 to avoid zeros
+            Map.Entry pair = (Map.Entry) it.next();
+            writer.println(pair.getKey() + "\t" + pair.getValue() + 1); //+1 to avoid zeros
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();
     }
-    
+
     /**
-     * 
+     *
      * @param map
      * @param type
      * @throws FileNotFoundException
-     * @throws UnsupportedEncodingException 
+     * @throws UnsupportedEncodingException
      */
-    private void printF(HashMap<Float, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException{
-        writer = new PrintWriter("results" + type +".txt", "UTF-8");  
+    private void printF(HashMap<Float, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException {
+        writer = new PrintWriter("results" + type + ".txt", "UTF-8");
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue()+1); //+1 to avoid zeros
+            Map.Entry pair = (Map.Entry) it.next();
+            writer.println(pair.getKey() + "\t" + pair.getValue() + 1); //+1 to avoid zeros
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();
     }
-    
+
     /**
-     * 
+     *
      * @param key
-     * @param map 
+     * @param map
      */
-    private void addToMap(Integer key, HashMap<Integer,Integer> map){
-        if (map.containsKey(key)){
-            map.replace(key, map.get(key)+1);
+    private void addToMap(Integer key, HashMap<Integer, Integer> map) {
+        if (map.containsKey(key)) {
+            map.replace(key, map.get(key) + 1);
         } else {
             map.put(key, 1);
         }
     }
-    
+
     /**
-     * 
+     *
      * @param key
-     * @param map 
+     * @param map
      */
-    private void addToMapF(Float key, HashMap<Float,Integer> map){
-        if (map.containsKey(key)){
-            map.replace(key, map.get(key)+1);
+    private void addToMapF(Float key, HashMap<Float, Integer> map) {
+        if (map.containsKey(key)) {
+            map.replace(key, map.get(key) + 1);
         } else {
             map.put(key, 1);
         }
     }
-    
+
 }

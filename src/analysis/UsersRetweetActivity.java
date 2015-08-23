@@ -14,51 +14,51 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Gathers the retweet activity of all users found in database and prints
- * it in a text file.
- * 
+ * Gathers the retweet activity of all users found in database and prints it in
+ * a text file.
+ *
  * @author Sokratis Papadopoulos
  */
 public class UsersRetweetActivity {
-    
+
     private MongoDBHandler mongo; //connect with database
     private HashMap<Long, UserEntry> users; // 
-    
+
     public UsersRetweetActivity() throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException {
-   
+
         users = new HashMap<>();
-        mongo = new MongoDBHandler(); 
-        
+        mongo = new MongoDBHandler();
+
         DBCursor cursor = mongo.getRetweetsColl().find(); //get all (re)tweets in our database
         SimpleDateFormat format = new SimpleDateFormat("EEE MMM d HH:mm:ss Z YYYY");
-        
+
         while (cursor.hasNext()) {
-            DBObject rt = cursor.next(); 
+            DBObject rt = cursor.next();
             long userO = Long.parseLong(rt.get("originalUserID").toString());
             long userRT = Long.parseLong(rt.get("retweetedUserID").toString());
             Date when = format.parse(rt.get("created_at").toString());
-            
-            if (users.containsKey(userO)){
+
+            if (users.containsKey(userO)) {
                 users.get(userO).newTweet(when, false); //false for receiving retweet
             } else {
-                users.put(userO, new UserEntry(when,false));
+                users.put(userO, new UserEntry(when, false));
             }
-            
-            if (users.containsKey(userRT)){
+
+            if (users.containsKey(userRT)) {
                 users.get(userRT).newTweet(when, true); //true for doing retweet
             } else {
-                users.put(userRT, new UserEntry(when,true));
+                users.put(userRT, new UserEntry(when, true));
             }
-            
+
         }
-        
+
         //finish up - calculate AVG
         for (UserEntry u : users.values()) {
             u.finish();
         }
-        
+
         System.out.println("size of hashmap: " + users.size());
-        
+
         //checking if we missed some users
 //        DBCursor c = mongo.getUsersColl().find(); //get all (re)tweets in our database
 //        while (c.hasNext()) {
@@ -67,19 +67,18 @@ public class UsersRetweetActivity {
 //            if (!users.containsKey(id))
 //                System.out.println("User: "+ id + " does not exist !!!");
 //        }
-        
-        PrintWriter writer = new PrintWriter("results.txt", "UTF-8"); 
+        PrintWriter writer = new PrintWriter("results.txt", "UTF-8");
         for (Map.Entry<Long, UserEntry> entry : users.entrySet()) {
-            writer.println(entry.getKey() + " " + entry.getValue().getRetweets() 
-                                          + " " + entry.getValue().getMinRtPerHour() 
-                                          + " " + entry.getValue().getMaxRtPerHour() 
-                                          + " " + entry.getValue().getAvgRtPerHour() 
-                                          + " " + entry.getValue().getRTreceived()
-                                          + " " + entry.getValue().getMinRTrecPerHour()
-                                          + " " + entry.getValue().getMaxRTrecPerHour()
-                                          + " " + entry.getValue().getAvgRTrecPerHour()
+            writer.println(entry.getKey() + " " + entry.getValue().getRetweets()
+                    + " " + entry.getValue().getMinRtPerHour()
+                    + " " + entry.getValue().getMaxRtPerHour()
+                    + " " + entry.getValue().getAvgRtPerHour()
+                    + " " + entry.getValue().getRTreceived()
+                    + " " + entry.getValue().getMinRTrecPerHour()
+                    + " " + entry.getValue().getMaxRTrecPerHour()
+                    + " " + entry.getValue().getAvgRTrecPerHour()
             );
         }
         writer.close();
-    }   
+    }
 }

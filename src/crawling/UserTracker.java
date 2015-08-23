@@ -19,16 +19,16 @@ import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
 
 /**
- * Crawling the activity of specific followed users list.
- * The list is being updated at specific times.
- * 
+ * Crawling the activity of specific followed users list. The list is being
+ * updated at specific times.
+ *
  * @author Sokratis Papadopoulos
  */
 public class UserTracker {
-    
+
     //variable handling mongo
     private MongoDBHandler mongo;
-    
+
     // variables for handling twitter Streaming API
     private TwitterStream stream;
     private StatusListener listener;
@@ -36,11 +36,11 @@ public class UserTracker {
     private FilterQuery fq;
 
     private List<String> suspicious;
-    
+
     /**
-     * Basic constructor of a User Tracker. 
-     * Doesnt provide suspicious users list.
-     * 
+     * Basic constructor of a User Tracker. Doesn't provide suspicious users
+     * list.
+     *
      */
     public UserTracker() {
         this.suspicious = null;
@@ -49,10 +49,10 @@ public class UserTracker {
         configuration();
         startListener();
     }
-    
+
     /**
      * Creating a thread for running the tracking.
-     * 
+     *
      * @param suspicious
      * @param mongo
      */
@@ -67,7 +67,7 @@ public class UserTracker {
 
     /**
      * The configuration details of our app as developer mode of Twitter APIs.
-     * 
+     *
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -77,23 +77,23 @@ public class UserTracker {
         cb.setOAuthAccessTokenSecret("Tc40irSU8G15IvvEu6EuVjsaM1xQAVCDzJoaSTnxYVFOI");
         cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
         config = cb.build();
-        
+
         //stream = new TwitterStreamFactory(config).getInstance();
     }
-    
+
     /**
-     * Implements the adding of users to the suspicious list. 
-     * It makes the appropriate updates or actions for every user.
-     * 
+     * Implements the adding of users to the suspicious list. It makes the
+     * appropriate updates or actions for every user.
+     *
      */
-    private void addUsersToFollowedUsers(){
+    private void addUsersToFollowedUsers() {
         //System.out.println("addUsersToFollowedUsers | adding users to followed list in mongo");
- 
+
         Date now = new Date();
         for (String id : suspicious) { //for every user that is suspicious
-            
-            Date finishTime=new Date(now.getTime() + (60 * 60000)); //finish time is set as current + 1hour
-            if (!mongo.findFollowedUser(id)){ //new user
+
+            Date finishTime = new Date(now.getTime() + (60 * 60000)); //finish time is set as current + 1hour
+            if (!mongo.findFollowedUser(id)) { //new user
                 //System.out.println("TIME TO ADD NEW USER TO FOLLOWED!");
                 BasicDBObject user = new BasicDBObject();
                 user.put("id_str", id); //save user's id
@@ -101,54 +101,53 @@ public class UserTracker {
                 //user.put("finish_time", finishTime);  
                 //mongo.addObjectToFollowedUsers(user);
                 //System.out.println("==Inserted to mongo: " + id + " " + now + " --> " + finishTime);
-                       
+
                 List<BasicDBObject> times = new ArrayList<>();
                 BasicDBObject time = new BasicDBObject();
-                time.put("starting_time", now);   
-                time.put("finish_time", finishTime); 
+                time.put("starting_time", now);
+                time.put("finish_time", finishTime);
                 times.add(time);
                 user.put("following_periods", times);
                 mongo.addObjectToFollowedUsers(user);
-                
-                
+
             } else {//user exists -> update finish time 
                 //System.out.println("TIME TO [UPDATE] A FOLLOWED USER!");
                 //BasicDBObject updated = new BasicDBObject().append("$set", new BasicDBObject().append("finish_time", finishTime)); //finish_time now + next check!
                 //mongo.updateFinishTime(id, updated); 
                 //System.out.println(id + "==Old user updated finish time.");   
-                
+
                 BasicDBObject time = new BasicDBObject();
-                time.put("starting_time", now);   
-                time.put("finish_time", finishTime); 
+                time.put("starting_time", now);
+                time.put("finish_time", finishTime);
 
                 BasicDBObject update = new BasicDBObject();
-                update.put("$push", new BasicDBObject("following_periods",time));
+                update.put("$push", new BasicDBObject("following_periods", time));
 
                 mongo.appendFinishTime(id, update);
             }
         }
     }
-    
+
     /**
      * Shutdowns the previous query to API, updates the following list and
      * starts over the query with the renewed list.
-     * 
-     * @param newcomers 
+     *
+     * @param newcomers
      */
-    public void update (List<String> newcomers){
+    public void update(List<String> newcomers) {
         //System.out.println("(update) the suspicious list in mongoDB");
         stopStreaming();
         suspicious = newcomers;
         addUsersToFollowedUsers(); //performs actions to form the final new suspicious users to follow (deletes inactive users)
         startListener();
     }
-    
+
     /**
-     *Receives all information about the list of following users.
-     * Stores that information at different collections in mongoDB.
+     * Receives all information about the list of following users. Stores that
+     * information at different collections in mongoDB.
      */
-    public void startListener() { 
-        
+    private void startListener() {
+
         listener = new StatusListener() {
 
             @Override
@@ -183,49 +182,49 @@ public class UserTracker {
                 //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
         };
-        
-        if(suspicious!=null){
+
+        if (suspicious != null) {
             addFilter();
         }
     }
-    
+
     /**
-     * Prepares the appropriate users list to follow their activity.
-     * Performs the query in Streaming API.
+     * Prepares the appropriate users list to follow their activity. Performs
+     * the query in Streaming API.
      */
-    private void addFilter(){
-        
+    private void addFilter() {
+
         long[] userIDs = new long[this.suspicious.size()];
         int i = 0;
-        
+
         for (String id : suspicious) {
             userIDs[i++] = Long.parseLong(id);
         }
-        
-        if(userIDs.length>0){
+
+        if (userIDs.length > 0) {
 
             fq.follow(userIDs); // follow users' activity
 
             stream = new TwitterStreamFactory(config).getInstance();
             stream.addListener(listener);
             stream.filter(fq);
-            
+
 //          //print all userIDs that are going to be followed
 //          for (int j=0; j<userIDs.length; j++) 
 //              System.out.println(userIDs[j]);         
         }
     }
-    
+
     /**
-     * Shut downs the crawling for current list of followed users.
-     * alternative if simple shutdown dont work.
+     * Shut downs the crawling for current list of followed users. alternative
+     * if simple shutdown dont work.
      */
     private void stopStreaming() {
 
         if (stream == null) {
             return;
         }
-        
+
         stream.addConnectionLifeCycleListener(new ConnectionLifeCycleListener() {
 
             @Override
@@ -245,7 +244,7 @@ public class UserTracker {
         });
 
         stream.shutdown();
-  
+
         while (stream != null) {
             try {
                 Thread.sleep(100);

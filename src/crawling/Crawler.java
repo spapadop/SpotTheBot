@@ -24,14 +24,14 @@ import twitter4j.conf.ConfigurationBuilder;
 import twitter4j.json.DataObjectFactory;
 
 /**
- * Crawls random english tweets from Streaming API 
- * and stores them in appropriate mongoDB collections.
- * It stores only when retweets occur and inserts the original tweet in DB.
- * 
+ * Crawls random english tweets from Streaming API and stores them in
+ * appropriate mongoDB collections. It stores only when retweets occur and
+ * inserts the original tweet in DB.
+ *
  * @author Sokratis Papadopoulos
  */
 public class Crawler extends TimerTask {
-    
+
     // variables for handling nosql database MongoDB
     private MongoDBHandler mongo;
 
@@ -46,28 +46,27 @@ public class Crawler extends TimerTask {
     private int time;
 
     /**
-     * Initializes a crawler object. 
+     * Initializes a crawler object. Implements the crawling from Twitter APIs
      * Initializes basic variables and establishes connections
-     * 
+     *
      * @throws JSONException
-     * @throws MongoException 
+     * @throws MongoException
      */
     public Crawler() throws JSONException {
-        time=0;
+        time = 0;
         trackingUsers = null;
         configuration(); //configures my application as developer mode
         try {
             mongo = new MongoDBHandler(); //creates the database and collection in mongoDB
-        } catch (UnknownHostException ex) {
-            Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (MongoException ex) {
+        } catch (UnknownHostException | MongoException ex) {
             Logger.getLogger(Crawler.class.getName()).log(Level.SEVERE, null, ex);
         }
         startListener(); //listener to Streaming API that will get the tweets
     }
 
     /**
-     * The configuration details of our app as developer mode of TwitterAPI
+     * The configuration details of our application as developer mode of
+     * TwitterAPI
      */
     private void configuration() {
         ConfigurationBuilder cb = new ConfigurationBuilder();
@@ -77,6 +76,7 @@ public class Crawler extends TimerTask {
         cb.setOAuthAccessToken("43403340-aUeWfSgfYpYSDmoeVzaPXF1aaiBAo3IL7zgIXwahU");
         cb.setOAuthAccessTokenSecret("Tc40irSU8G15IvvEu6EuVjsaM1xQAVCDzJoaSTnxYVFOI");
         cb.setJSONStoreEnabled(true); //We use this as we pull json files from Twitter Streaming API
+
         config = cb.build();
         fq = new FilterQuery();
         stream = new TwitterStreamFactory(config).getInstance();
@@ -98,14 +98,12 @@ public class Crawler extends TimerTask {
                     JSONObject jObj = new JSONObject(dbObj.toString()); //creates a JSONObject out of the DBObject
 
                     if (!jObj.getJSONObject("retweeted_status").getString("id_str").isEmpty()) { //FOUND A RETWEET
-                        
+
                         //========== STORING INTO LOCAL VARIABLES ============//
-                        
                         Long originalUserID = status.getRetweetedStatus().getUser().getId(); //gets userID of original tweet
                         Long originalTweetID = status.getRetweetedStatus().getId(); //gets tweetID of original tweet
                         Long retweetedUserID = status.getUser().getId(); //gets the userID of retweeted user
-                        Date at = status.getCreatedAt(); //gets date the retweet created (current)
-                        
+                        Date at = status.getCreatedAt(); //gets date when the retweet created (current)
                         //====================================================//
                         
                         //===== INSERT RETWEET INTO RETWEETS COLLECTION ======//
@@ -115,13 +113,10 @@ public class Crawler extends TimerTask {
                         document.put("originalUserID", originalUserID.toString());      //save original userID 
                         document.put("retweetedUserID", retweetedUserID.toString());    //save retweeter userID
                         document.put("created_at", at);                                 //save retweet date
-                        
                         mongo.addObjectToRetweetsColl(document); //insert onto mongoDB retweet collection
-                        
                         //====================================================//
                         
                         //==== INSERT USERS INTO USERS COLLECTION ============//
-                        
                         //original users
                         String originalUserDetails = jObj.getJSONObject("retweeted_status").getString("user"); //json user attribute of original user
                         DBObject originalUserToStore = (DBObject) JSON.parse(originalUserDetails); //creates a DBObject out of json for mongoDB
@@ -131,19 +126,17 @@ public class Crawler extends TimerTask {
                         String retweeterUserDetails = jObj.getString("user"); //json user attribute of original user
                         DBObject retweeterUserToStore = (DBObject) JSON.parse(retweeterUserDetails); //creates a DBObject out of json for mongoDB
                         mongo.addObjectToUsersColl(retweeterUserToStore); //insert retweeter user on mongoDB
-                        
                         //====================================================//
-                                                
+                        
                         //=== INSERT ORIGINAL TWEET INTO TWEETS COLLECTION ===//
-                        
-                        JSONObject tweetDetails = jObj.getJSONObject("retweeted_status"); 
+                        JSONObject tweetDetails = jObj.getJSONObject("retweeted_status");
                         tweetDetails.remove("user");
-                        DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString()); 
+                        DBObject tweetToStore = (DBObject) JSON.parse(tweetDetails.toString());
                         tweetToStore.put("user_id", originalUserID.toString()); //put just id_str of original user
-/*!!!!! DATE !!!!!!!!*/ //Date originalTweetDate = status.getRetweetedStatus().getCreatedAt(); //takes the date of original tweet
+                        //Date originalTweetDate = status.getRetweetedStatus().getCreatedAt(); //takes the date of original tweet
                         mongo.addObjectToTweetsColl(tweetToStore); //insert original tweet on mongoDB | rejects duplicates
-                        
                         //====================================================//
+                        
                     }
                 } catch (JSONException ex) {
                     //retweet_status not found -> not a retweet
@@ -189,30 +182,31 @@ public class Crawler extends TimerTask {
     }
 
     /**
-     * Runs every hour and checks for suspicious users to follow.
-     * The list is being updated every time and so does the query to the
-     * Steaming API with the wanted users.
-     * 
+     * Runs every hour and checks for suspicious users to follow. The list is
+     * being updated every time and so does the query to the Steaming API with
+     * the wanted users.
+     *
      */
     @Override
     public void run() {
         System.out.println(time + " ****** CASUAL CONTROL ********");
-        List<String> suspicious = mongo.findSuspiciousUsers();            
-        
-        if(!suspicious.isEmpty()){
+        List<String> suspicious = mongo.findSuspiciousUsers();
+
+        if (!suspicious.isEmpty()) {
             //System.out.println("We have the following suspicious users: ");
             //for(String suser: suspicious)
-                //System.out.println(suser);
-                    
-            if (trackingUsers == null)  //first time list for users
+            //System.out.println(suser);
+
+            if (trackingUsers == null) //first time list for users
+            {
                 trackingUsers = new UserTracker(suspicious, mongo);
-            else 
+            } else {
                 trackingUsers.update(suspicious);
+            }
         } else {
             System.out.println("At the moment there are no suspicious users.");
         }
-        
-        //System.out.println("-------------------------------------");   
+
         time++;
-    }                
+    }
 }
