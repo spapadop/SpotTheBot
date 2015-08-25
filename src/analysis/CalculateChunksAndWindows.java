@@ -138,7 +138,7 @@ public class CalculateChunksAndWindows {
     }
 
     /**
-     * Shifts the chunks on the hashmap one position back in order to compute in
+     * Shifts the chunks on the ΗashΜap one position back in order to compute in
      * the last position the new chunk data.
      *
      * @param userO
