@@ -17,11 +17,11 @@ public class SpotTheBot {
 
     public static void main(String[] args) throws JSONException {
 
-        Crawler crawl = new Crawler(); //starts the crawling
+        //Crawler crawl = new Crawler(); //starts the crawling
 
         //create task to be executed every 1 hour
-        Timer time = new Timer();
-        time.schedule(crawl, 0, TASK_REPEAT);
+        //Timer time = new Timer();
+        //time.schedule(crawl, 0, TASK_REPEAT);
 
     }
 

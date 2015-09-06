@@ -12,9 +12,10 @@ import java.util.Iterator;
 
 /**
  * Spots which users from our database have some specific characteristics that
- * make them suspicious. These characteristics checked are: a) over total five
- * Retweets in a time window b) over two min Retweets in a time window c) over
- * ten max Retweets in a time window
+ * make them suspicious. These characteristics checked are: 
+ * a) over total five Retweets in a time window 
+ * b) over two min Retweets in a time window 
+ * c) over ten max Retweets in a time window
  *
  * Then, it exports the relative users into files. Additionally, it makes all
  * the possible combination of characteristics and print the relative users in
@@ -36,10 +37,10 @@ public class UsersWithCharacteristics {
         usersOverTwoMinRT = new HashSet<>();
         usersOverTenMaxRT = new HashSet<>();
 
-        File file = new File("H:\\Thesis\\runs\\run2\\analysis\\results-per-time-window.txt");
+        File file = new File("C:\\Users\\sokpa\\Documents\\GitHub\\SpotTheBot\\results-per-time-window-clear.txt");
         BufferedReader reader = null;
 
-        System.out.println("start reading...");
+        //System.out.println("start reading...");
         try {
             reader = new BufferedReader(new FileReader(file));
             String text = null;
@@ -53,7 +54,7 @@ public class UsersWithCharacteristics {
                 reader.close();
             }
         }
-        System.out.println("finished reading...");
+        //System.out.println("finished reading...");
 
         startWriting();
     }

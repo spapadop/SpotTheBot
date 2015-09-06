@@ -12,6 +12,7 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Connects with dataset and exports tweets and retweets done by each user.
@@ -47,7 +48,8 @@ public class UsersStats {
 
         PrintWriter writer = new PrintWriter("resultsRandom.txt", "UTF-8");
         DBCursor cursor = mongo.getUsersColl().find(); //get all users of random collection
-        SimpleDateFormat format = new SimpleDateFormat("EEE MMM d HH:mm:ss Z YYYY");
+        SimpleDateFormat format = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
+                                            Locale.ENGLISH); //CHECK
         //cursor.skip(2701900);
 
         while (cursor.hasNext()) { //for every user in random collection database
@@ -127,7 +129,8 @@ public class UsersStats {
     private void collectStatsForFollowedUsers() throws FileNotFoundException, UnsupportedEncodingException, ParseException {
         PrintWriter writer = new PrintWriter("resultsFollowed.txt", "UTF-8");
         DBCursor cursor = mongo.getFollowedUsersColl().find(); //get all users of random collection
-        SimpleDateFormat format = new SimpleDateFormat("EEE MMM d HH:mm:ss Z YYYY");
+        SimpleDateFormat format = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
+                                            Locale.ENGLISH); //CHECK
 
         while (cursor.hasNext()) { //for every user in random collection database
 

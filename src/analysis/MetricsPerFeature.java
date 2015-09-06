@@ -29,22 +29,22 @@ public class MetricsPerFeature {
 
     public MetricsPerFeature() throws FileNotFoundException, UnsupportedEncodingException, IOException {
 
-        String filePath = "C:\\Users\\sokpa\\Desktop\\Thesis\\data_analysis\\analysis\\results-per-time-window.txt";
-        String clearPath = "clearResults.txt";
-        removeZeroEntries(filePath);
+        String filePath = "results-per-time-window-clear.txt";
 
         counter = 0;
-        data = new double[countLines(filePath)];// 
+        int howManyLines = countLines(filePath);
+        //System.out.println("Clear file has: " + howManyLines + " lines.");
+        data = new double[howManyLines];
         size = data.length;
 
-        File file = new File(clearPath);
+        File file = new File(filePath);
         BufferedReader reader = null;
 
-        System.out.println("start reading...");
+        //System.out.println("start reading...");
         try {
             for (int i = 2; i < 12; i++) {
                 counter = 0;
-                String text = null;
+                String text;
                 reader = new BufferedReader(new FileReader(file));
                 System.out.println("working on i=" + i);
                 while ((text = reader.readLine()) != null) {
@@ -62,57 +62,13 @@ public class MetricsPerFeature {
             } catch (IOException e) {
             }
         }
-        System.out.println("finished reading...");
-    }
-
-    private void removeZeroEntries(String readPath) throws FileNotFoundException, UnsupportedEncodingException {
-
-        File file = new File(readPath);
-        BufferedReader reader;
-        PrintWriter writer = new PrintWriter("clearResults.txt", "UTF-8");
-
-        reader = new BufferedReader(new FileReader(file));
-
-        System.out.println("start reading...");
-        try {
-            boolean flag;
-            String text;
-
-            while ((text = reader.readLine()) != null) {
-                flag = false;
-                String[] splited = text.split("\\s+");
-                for (int i = 2; i < 12; i++) {
-                    if (!splited[i].equals("0") && !splited[i].equals("0.0")) {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (flag) {
-                    writer.println(text);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-            } catch (IOException e) {
-            }
-        }
-
-        System.out.println("finished reading...");
-        writer.close();
-        System.out.println("finished writing...");
+        //System.out.println("finished reading...");
     }
 
     private void writeResults(int i) throws FileNotFoundException, UnsupportedEncodingException {
-        System.out.println("writing results...");
+        //System.out.println("writing results...");
         PrintWriter writer = new PrintWriter("results" + i + ".txt", "UTF-8");
-        writer.println("AVG \t VAR \t STD \t MED \t IQR");
+        writer.println("AVG \t VAR \t STD \t MED ");
         writer.printf("%.2f\t%.2f\t%.2f\t%.2f\t", avg, variance, stdDev, median);
         //writer.println(iqr);
 
@@ -170,11 +126,42 @@ public class MetricsPerFeature {
     private int countLines(String path) throws FileNotFoundException, IOException {
         LineNumberReader lnr = new LineNumberReader(new FileReader(new File(path)));
         lnr.skip(Long.MAX_VALUE);
-        System.out.println(lnr.getLineNumber() + 1); //Add 1 because line index starts at 0
+        //System.out.println(lnr.getLineNumber() + 1); //Add 1 because line index starts at 0
         // Finally, the LineNumberReader object should be closed to prevent resource leak
         lnr.close();
 
         return lnr.getLineNumber() + 1;
+    }
+    
+    public static void countSumOfRTinEachWindow() throws IOException{
+        File file = new File("results-per-time-window-clear.txt");
+        BufferedReader reader = null;
+       
+            int winID=1;
+            long counter=0;
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            String text = null;
+            while ((text = reader.readLine()) != null) {
+                String[] splited = text.split("\\s+");
+                
+//                if(winID==44)
+//                    System.out.println(text);
+                
+                if(winID != Integer.parseInt(splited[0])){
+                    System.out.println(winID + ": " + counter);
+                    winID = Integer.parseInt(splited[0] );
+                    counter=1;
+                }
+                else 
+                    counter += Long.parseLong(splited[2]);
+            }
+        } finally {
+            System.out.println(winID + ": " + counter);
+            if (reader != null) {
+                reader.close();
+            }
+        }
     }
 
 }

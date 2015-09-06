@@ -17,16 +17,22 @@ public class RunAnalysis {
 
     public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException {
 
-        //======== DIRECTLY FROM DATASET (MONGODB) ========
-        CalculateChunksAndWindows first = new CalculateChunksAndWindows();
-        UsersStats second = new UsersStats();
-        SuspiciousTweetActivity third = new SuspiciousTweetActivity();
-        UsersRetweetActivity fourth = new UsersRetweetActivity();
+        //========== DIRECTLY FROM DATASET (MONGODB) ========
+        //CalculateChunksAndWindows first = new CalculateChunksAndWindows();
+        //UsersStats second = new UsersStats();
+        //SuspiciousTweetActivity third = new SuspiciousTweetActivity();
+        //UsersRetweetActivity fourth = new UsersRetweetActivity();
 
         //========== ANALYZE TIME-WINDOWS DATA ============
-        UsersWithCharacteristics fifth = new UsersWithCharacteristics();
-        ConvertToOccurrences sixth = new ConvertToOccurrences();
-        MetricsPerFeature seventh = new MetricsPerFeature();
-
+        //UsersWithCharacteristics fifth = new UsersWithCharacteristics();
+        //ConvertToOccurrences sixth = new ConvertToOccurrences();
+        //MetricsPerFeature seventh = new MetricsPerFeature();
+        
+        //========== NORMALIZE TIME-WINDOWS DATA ============
+        //NormalizationOfData fin = new NormalizationOfData();
+        //NormalizedOccurrences fin2 = new NormalizedOccurrences();
+        
+        //========== ANALYSE OUTLIERS =========================
+        //OutliersAnalysis an = new OutliersAnalysis();
     }
 }

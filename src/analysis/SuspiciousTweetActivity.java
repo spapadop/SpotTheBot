@@ -21,7 +21,6 @@ public class SuspiciousTweetActivity {
     private MongoDBHandler mongo;
 
     public SuspiciousTweetActivity() throws FileNotFoundException, UnsupportedEncodingException, MongoException, UnknownHostException {
-
         mongo = new MongoDBHandler();
         int counter = 1;
         DBCursor cursor = mongo.getFollowedUsersColl().find(); //get all followed users
@@ -31,7 +30,7 @@ public class SuspiciousTweetActivity {
             DBObject user = cursor.next(); //get one record
             //System.out.println(counter + ". working on: " + user.get("id_str"));
             counter++;
-            PrintWriter writer = new PrintWriter(user.get("id_str").toString() + ".json", "UTF-8"); //create a text file for him
+            PrintWriter writer = new PrintWriter(user.get("id_str").toString() + ".txt", "UTF-8"); //create a text file for him
 
             BasicDBObject tweetsQuery = new BasicDBObject(); //make a query to get original tweets of user
             tweetsQuery.put("user_id", user.get("id_str"));

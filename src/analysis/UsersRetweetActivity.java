@@ -11,6 +11,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -30,7 +31,8 @@ public class UsersRetweetActivity {
         mongo = new MongoDBHandler();
 
         DBCursor cursor = mongo.getRetweetsColl().find(); //get all (re)tweets in our database
-        SimpleDateFormat format = new SimpleDateFormat("EEE MMM d HH:mm:ss Z YYYY");
+        SimpleDateFormat format = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
+                                            Locale.ENGLISH);
 
         while (cursor.hasNext()) {
             DBObject rt = cursor.next();
@@ -57,7 +59,7 @@ public class UsersRetweetActivity {
             u.finish();
         }
 
-        System.out.println("size of hashmap: " + users.size());
+        //System.out.println("size of hashmap: " + users.size());
 
         //checking if we missed some users
 //        DBCursor c = mongo.getUsersColl().find(); //get all (re)tweets in our database

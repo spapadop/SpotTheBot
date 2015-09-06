@@ -10,7 +10,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * Converts the data we have for each time window into a text file of
@@ -47,13 +46,13 @@ public class ConvertToOccurrences {
         avgRetweetsRec = new HashMap<>();
         iqrRetweetsRec = new HashMap<>();
 
-        File file = new File("results-per-time-window.txt");
+        File file = new File("C:\\Users\\sokpa\\Desktop\\newThesis\\data_analysis\\analysis\\data\\results1-filtered-retOnly.txt");
         BufferedReader reader = null;
 
-        System.out.println("start reading...");
+        //System.out.println("start reading...");
         try {
             reader = new BufferedReader(new FileReader(file));
-            String text = null;
+            String text = reader.readLine();
 
             while ((text = reader.readLine()) != null) {
                 String[] splited = text.split("\\s+");
@@ -67,8 +66,26 @@ public class ConvertToOccurrences {
             } catch (IOException e) {
             }
         }
-        System.out.println("finished reading...");
+        
+        file = new File("C:\\Users\\sokpa\\Desktop\\newThesis\\data_analysis\\analysis\\data\\results2-filtered-retOnly.txt");
 
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            String text = reader.readLine();
+
+            while ((text = reader.readLine()) != null) {
+                String[] splited = text.split("\\s+");
+                addToMaps(splited);
+            }
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        
         startWriting();
     }
 
@@ -83,11 +100,11 @@ public class ConvertToOccurrences {
         addToMapF(Float.parseFloat(splited[5]), avgRetweets);
         addToMapF(Float.parseFloat(splited[6]), iqrRetweets);
 
-        addToMap(Integer.parseInt(splited[7]), retweetsRec);
-        addToMap(Integer.parseInt(splited[8]), minRetweetsRec);
-        addToMap(Integer.parseInt(splited[9]), maxRetweetsRec);
-        addToMapF(Float.parseFloat(splited[10]), avgRetweetsRec);
-        addToMapF(Float.parseFloat(splited[11]), iqrRetweetsRec);
+//        addToMap(Integer.parseInt(splited[7]), retweetsRec);
+//        addToMap(Integer.parseInt(splited[8]), minRetweetsRec);
+//        addToMap(Integer.parseInt(splited[9]), maxRetweetsRec);
+//        addToMapF(Float.parseFloat(splited[10]), avgRetweetsRec);
+//        addToMapF(Float.parseFloat(splited[11]), iqrRetweetsRec);
     }
 
     /**
@@ -102,11 +119,11 @@ public class ConvertToOccurrences {
         printF(avgRetweets, "AvgRetweets");
         printF(iqrRetweets, "IqrRetweets");
 
-        print(retweetsRec, "RetweetsRec");
-        print(minRetweetsRec, "MinRetweetsRec");
-        print(maxRetweetsRec, "MaxRetweetsRec");
-        printF(avgRetweetsRec, "AvgRetweetsRec");
-        printF(iqrRetweetsRec, "IqrRetweetsRec");
+//        print(retweetsRec, "RetweetsRec");
+//        print(minRetweetsRec, "MinRetweetsRec");
+//        print(maxRetweetsRec, "MaxRetweetsRec");
+//        printF(avgRetweetsRec, "AvgRetweetsRec");
+//        printF(iqrRetweetsRec, "IqrRetweetsRec");
     }
 
     /**
@@ -117,11 +134,12 @@ public class ConvertToOccurrences {
      * @throws UnsupportedEncodingException
      */
     private void print(HashMap<Integer, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException {
-        writer = new PrintWriter("results" + type + ".txt", "UTF-8");
+        writer = new PrintWriter("results" + type + "12.txt", "UTF-8");
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue() + 1); //+1 to avoid zeros
+            int key = (int) pair.getKey() + 1; //+1 to avoid zeros
+            writer.println(key + "\t" + pair.getValue()); 
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();
@@ -135,11 +153,12 @@ public class ConvertToOccurrences {
      * @throws UnsupportedEncodingException
      */
     private void printF(HashMap<Float, Integer> map, String type) throws FileNotFoundException, UnsupportedEncodingException {
-        writer = new PrintWriter("results" + type + ".txt", "UTF-8");
+        writer = new PrintWriter("results" + type + "12.txt", "UTF-8");
         Iterator it = map.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
-            writer.println(pair.getKey() + "\t" + pair.getValue() + 1); //+1 to avoid zeros
+            double key = (float) pair.getKey() + 1.0; //+1 to avoid zeros
+            writer.println(key + "\t" + pair.getValue()); 
             it.remove(); // avoids a ConcurrentModificationException
         }
         writer.close();
@@ -169,6 +188,41 @@ public class ConvertToOccurrences {
         } else {
             map.put(key, 1);
         }
+    }
+    
+    private void filterRetweetOnly() throws FileNotFoundException, UnsupportedEncodingException{
+        File file = new File("C:\\Users\\sokpa\\Documents\\GitHub\\SpotTheBot\\results-per-time-window-clear.txt");
+        BufferedReader reader;
+        PrintWriter writer = new PrintWriter("results-per-time-window-super-clear.txt", "UTF-8");
+
+        reader = new BufferedReader(new FileReader(file));
+
+//        System.out.println("start reading...");
+        try {
+            String text;
+            while ((text = reader.readLine()) != null) {
+                String[] splited = text.split("\\s+");
+                
+                if (!splited[2].equals("0")) {
+                    writer.println(text);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+
+//        System.out.println("finished reading...");
+        writer.close();
+//        System.out.println("finished writing...");
     }
 
 }
