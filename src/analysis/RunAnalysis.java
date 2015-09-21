@@ -1,10 +1,13 @@
 package analysis;
 
+import com.mongodb.MongoException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
+import twitter4j.JSONException;
 
 /**
  * This is the main class which runs the whole analysis of the project. It
@@ -15,13 +18,14 @@ import java.text.ParseException;
  */
 public class RunAnalysis {
 
-    public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException {
+    public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException, MongoException, URISyntaxException, JSONException {
 
         //========== DIRECTLY FROM DATASET (MONGODB) ========
         //CalculateChunksAndWindows first = new CalculateChunksAndWindows();
         //UsersStats second = new UsersStats();
         //SuspiciousTweetActivity third = new SuspiciousTweetActivity();
         //UsersRetweetActivity fourth = new UsersRetweetActivity();
+        FeaturesAnalysis fa = new FeaturesAnalysis();
 
         //========== ANALYZE TIME-WINDOWS DATA ============
         //UsersWithCharacteristics fifth = new UsersWithCharacteristics();
