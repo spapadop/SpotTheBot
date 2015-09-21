@@ -45,6 +45,7 @@ public class CalculateChunksAndWindows {
         cursor = mongo.getRetweetsColl().find(); //get all retweets in our database
 
         userPerChunk = new HashMap<>();
+        
         writer = new PrintWriter("results-per-time-window.txt", "UTF-8");
 
         chunkCounter = 0;
