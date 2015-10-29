@@ -51,6 +51,7 @@ public class TwitterUser {
     private double retweetsTweetsRatio; //ratio of retweets done / tweets done
     private ArrayList<DBObject> statuses;
     private ArrayList<String> texts;
+    private ArrayList<String> cleanTexts;
 
     //FAVORITES
     private int favorites;
@@ -95,7 +96,9 @@ public class TwitterUser {
 
     //NEW UNEXPLORED STUFF
     private double compressionRatio;
-    private int entropy;
+    private double entropy;
+    private ArrayList<String> ngrams; // n=3
+    private double urlEntropy;
 
     /**
      * Construct a TwitterUser object.
@@ -123,6 +126,8 @@ public class TwitterUser {
         this.retweets = 0;
         this.retweetsTweetsRatio = 0;
         this.statuses = new ArrayList<>();
+        this.cleanTexts = new ArrayList<>();
+        this.texts = new ArrayList<>();
 
         this.favorites = 0;
 
@@ -157,21 +162,14 @@ public class TwitterUser {
 
         this.compressionRatio = 0;
         this.entropy = 0;
-
+        this.ngrams = new ArrayList<>();
+        this.urlEntropy =0;
+        
     }
 
     /**
      * Collects information for a user as taken from his record in mongoDB.
      *
-     * @param ver
-     * @param friends
-     * @param u
-     * @param createdAt
-     * @param fav
-     * @param desc
-     * @param defPro
-     * @param defProImg
-     * @param fol
      */
     public void checkUserDetails() {
 
@@ -204,7 +202,6 @@ public class TwitterUser {
         int ht = 0, m = 0, url = 0; //unique tweets that has an entity
 
         for (DBObject tweet : statuses) {
-            
             JSONObject jobj = new JSONObject(tweet.toString());
             JSONObject entities = jobj.getJSONObject("entities"); //getting inside "entities" in json
 
@@ -235,6 +232,9 @@ public class TwitterUser {
             } catch (java.lang.NullPointerException ex){
                 //System.out.println("null pointer on source " + tweet.get("source").toString());
             }
+            
+            //======= GETTING TEXTS =======
+            addTweet(jobj.getString("text"));
             
             mentions += mentionsArr[counter];
             hashtags += hashtagsArr[counter];
@@ -274,9 +274,15 @@ public class TwitterUser {
             //System.out.println("url syntax exception");
         }
         
+        entropy();
         doCompression();
     }
     
+    /**
+     * Adds a tweet to the text collection for the user.
+     * 
+     * @param t 
+     */
     public void addTweet(String t){
         texts.add(t);
     }
@@ -312,6 +318,7 @@ public class TwitterUser {
         System.out.println("24. url_domain_Ratio: " + urlDomainRatio);
         System.out.println("25. timeFollowed: " + timeFollowed); 
         System.out.println("26. compressionRatio: " + compressionRatio);
+        System.out.println("27. entropy: " + entropy);
     }
 
     /**
@@ -506,13 +513,77 @@ public class TwitterUser {
     public void doCompression() throws IOException{
         int uncompressed=0;
         int compressed=0;
+        int limit= Integer.MAX_VALUE;
         for(String text: texts){
             uncompressed += text.getBytes().length;
             compressed += compressToByte(text).length;
+           
+            if(uncompressed < compressed){
+                if (limit > texts.size()){
+                    limit = texts.size();
+                }
+            }
         }
-        setCompressionRatio(calculateRatio(uncompressed, compressed));
+        setCompressionRatio(calculateRatio(compressed, uncompressed));
     } 
+    
+    public void cleanTweets(){
+        for(String text: texts){
+            
+            String[] split = text.split("\\s+");
+            for(int i=0; i<split.length; i++){
+                if(split[i].startsWith("@")){ //remove mentions
+                    split[i] = "";
+                }
+                if(split[i].startsWith("http") || split[i].startsWith("www") || split[i].contains("http") || split[i].contains("www")){ //urls
+                    split[i] = "";
+                }
+            }
+            String clean="";
+            for(int i=0; i<split.length; i++){
+                clean += " " + split[i];
+            }
+            clean = clean.substring(1);
+            if(clean.contains("http")){
+                System.out.println(clean);
+            }
+            cleanTexts.add(clean);
+        }
+    }
 
+    public void entropy(){
+        cleanTweets();
+        
+        for(String text : cleanTexts){
+            String[] split = text.split("\\s+");
+            for(int i=0; i<=split.length-3; i++){
+                ngrams.add(split[i] +" "+ split[i+1]+" " + split[i+2]);
+            }
+        }
+        
+        if (ngrams.isEmpty()){
+            entropy = 0;
+            return;
+        }
+        
+        //calculate Entropy
+        for(String gram : ngrams){
+            double p = countNumberEqual(gram)/ngrams.size();
+            entropy = entropy -p*Math.log(p); //pi*log(pi);
+        }
+        
+    }
+    
+    private double countNumberEqual(String itemToCheck) {
+        int count = 0;
+        for (String i : ngrams) {
+            if (i.equals(itemToCheck)) {
+              count++;
+            }
+        }
+        return count;
+    }
+    
     //===================== GETTERS & SETTERS ==================================
     public Long getId() {
         return id;
@@ -749,23 +820,16 @@ public class TwitterUser {
         return timeFollowed;
     }
 
-    public void setTimeFollowed(String start, String end) throws ParseException {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy", Locale.ENGLISH);
-        Date st = dateFormat.parse(start);
-        Date en = dateFormat.parse(end);
-        this.timeFollowed = getDateDiff(st, en, TimeUnit.HOURS);
+    public void setTimeFollowed(Date start, Date end) throws ParseException {
+        if(start != null || end != null){
+            this.timeFollowed = getDateDiff(start, end, TimeUnit.HOURS);
+        } else{
+            this.timeFollowed = 0;
+        }
     }
 
     public void setTimeFollowed(long hours) {
         this.timeFollowed = hours;
-    }
-
-    public void setTimeFollowed(DBObject rec) throws ParseException {
-        if (rec != null) {
-            setTimeFollowed(rec.get("starting_time").toString(), rec.get("finish_time").toString());
-        } else {
-            setTimeFollowed(0);
-        }
     }
 
     public boolean isDefProf() {
@@ -800,12 +864,36 @@ public class TwitterUser {
         this.compressionRatio = compressionRatio;
     }
 
-    public int getEntropy() {
+    public double getEntropy() {
         return entropy;
     }
 
-    public void setEntropy(int entropy) {
+    public void setEntropy(double entropy) {
         this.entropy = entropy;
+    }
+
+    public ArrayList<String> getNgrams() {
+        return ngrams;
+    }
+
+    public void setNgrams(ArrayList<String> ngrams) {
+        this.ngrams = ngrams;
+    }
+
+    public ArrayList<String> getCleanTexts() {
+        return cleanTexts;
+    }
+
+    public void setCleanTexts(ArrayList<String> cleanTexts) {
+        this.cleanTexts = cleanTexts;
+    }
+
+    public double getUrlEntropy() {
+        return urlEntropy;
+    }
+
+    public void setUrlEntropy(double urlEntropy) {
+        this.urlEntropy = urlEntropy;
     }
 
 }
