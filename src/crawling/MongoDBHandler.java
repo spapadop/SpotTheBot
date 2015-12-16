@@ -1,5 +1,6 @@
 package crawling;
 
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -7,6 +8,12 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -289,16 +296,25 @@ public class MongoDBHandler {
     public Date getTimeUserAppeared(Long id) throws ParseException {
         BasicDBObject query = new BasicDBObject();
         query.put("id_str", id.toString());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
-
-        //if it is a list of dates
-//            DBCursor c = this.followedUsersColl.find(query);
-//            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
-//            BasicDBObject first = (BasicDBObject) times.get(0);
-//            String date = first.get("starting_time").toString();
-        //if it is normal field (not list-array)
-        String date = this.followedUsersColl.findOne(query).get("starting_time").toString();
-
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
+                                            Locale.ENGLISH);
+        
+        String date;
+        try{
+            //if it is normal field (not list-array)
+            date = this.followedUsersColl.findOne(query).get("starting_time").toString();
+        } catch (java.lang.NullPointerException ex){
+            try{
+                //if it is a list of dates
+                DBCursor c = this.followedUsersColl.find(query);
+                BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+                BasicDBObject first = (BasicDBObject) times.get(0);
+                date = first.get("starting_time").toString();
+            } catch (java.util.NoSuchElementException e){
+                return null;
+            }
+        } 
+        
         Date d = dateFormat.parse(date);
         return d;
     }
@@ -306,15 +322,24 @@ public class MongoDBHandler {
     public Date getTimeUserDisappeared(Long id) throws ParseException {
         BasicDBObject query = new BasicDBObject();
         query.put("id_str", id.toString());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzzz yyyy", Locale.ENGLISH);
-
-        //if it is a list of dates
-//            DBCursor c = this.followedUsersColl.find(query);
-//            BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
-//            BasicDBObject first = (BasicDBObject) times.get(times.size()-1);
-//            String date = first.get("finish_time").toString();
-        //if it is normal field (not list-array)
-        String date = this.followedUsersColl.findOne(query).get("finish_time").toString();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
+                                            Locale.ENGLISH);
+        String date;
+        try{
+            //if it is normal field (not list-array)
+            date = this.followedUsersColl.findOne(query).get("finish_time").toString();
+        } catch (java.lang.NullPointerException ex){
+            try{
+                //if it is a list of dates
+                DBCursor c = this.followedUsersColl.find(query);
+                BasicDBList times = (BasicDBList) c.next().get("following_periods"); 
+                BasicDBObject last = (BasicDBObject) times.get(times.size()-1);
+                date = last.get("finish_time").toString();
+            } catch (java.util.NoSuchElementException e){
+                return null;
+            }
+        }
+        
         Date d = dateFormat.parse(date);
         return d;
     }
@@ -364,6 +389,60 @@ public class MongoDBHandler {
         System.out.println("counter: " + count);
         System.out.println("size of hash: " + ids.size());
         return ids.size();
+    }
+    
+    public void suspiciousTweetActivity() throws FileNotFoundException, UnsupportedEncodingException, MongoException, UnknownHostException, IOException {
+        System.out.println("Starting procedure...");
+        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Documents\\NetBeansProjects\\Test\\badUsersLowEntropyIDS.txt"));
+        String line = reader.readLine();
+        
+        while (line !=null) { //for every user
+            System.out.println("==========" + line + "===========");
+            long id = Long.parseLong(line);
+            
+            PrintWriter writer = new PrintWriter(id + ".txt", "UTF-8"); //create a text file for him
+            System.out.println("starting tweets query");
+            BasicDBObject tweetsQuery = new BasicDBObject(); //make a query to get original tweets of user
+            tweetsQuery.put("user_id", line);
+
+            DBCursor tweets = tweetsColl.find(tweetsQuery);
+            int k = 1;
+            System.out.println("found relevant tweets");
+            writer.println("======================================= ORIGINAL TWEETS BY USER ======================================");
+            while (tweets.hasNext()) { //for every tweet
+                DBObject tweet = tweets.next(); //store user object
+
+                writer.println(k + ". " + tweet.get("id_str") + ": " + tweet.get("text"));
+                k++;
+            }
+
+            System.out.println("starting retweets query");
+            BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
+            retweetsQuery.put("retweetedUserID", line);
+
+            DBCursor retweets = retweetsColl.find(retweetsQuery);
+            System.out.println("found relevant retweets");
+            if (retweets.count() > 0) {
+                k = 1;
+                writer.println();
+                writer.println();
+                writer.println("====================================== USER RETWEETED THESE TWEETS =====================================");
+                while (retweets.hasNext()) { //for every tweet
+                    DBObject retweet = retweets.next(); //store user object
+
+                    BasicDBObject quer = new BasicDBObject(); //make a query to count retweets of user
+                    quer.put("id_str", retweet.get("originalTweetID"));
+                    DBObject tw = tweetsColl.findOne(quer);
+                    writer.println(k + ". " + retweet.get("originalTweetID") + " >> " + retweet.get("originalUserID") + ": " + tw.get("text"));
+                    k++;
+                }
+            }
+
+            writer.println("========================================================================================================");
+            writer.close();
+            line = reader.readLine();
+        }
+        reader.close();
     }
     
     // Getters

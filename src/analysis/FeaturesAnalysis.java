@@ -17,6 +17,7 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.HashSet;
 import twitter4j.JSONException;
+import twitter4j.JSONObject;
 
 /**
  * Runs the features analysis based on our data collected. Calculates 
@@ -32,7 +33,7 @@ public class FeaturesAnalysis {
     
     public FeaturesAnalysis() throws MongoException, UnknownHostException, FileNotFoundException, UnsupportedEncodingException, ParseException, URISyntaxException, JSONException, IOException{
         mongo = new MongoDBHandler();
-        writer = new PrintWriter("featureAnalysisPerUser.txt", "UTF-8");
+        writer = new PrintWriter("test.txt", "UTF-8");
         ids = new HashSet<>();     
         File file = new File("C:\\Users\\sokpa\\Desktop\\newThesis\\data_analysis\\analysis\\data\\results1-filtered-retOnly.txt");
         BufferedReader reader = null;
@@ -60,9 +61,9 @@ public class FeaturesAnalysis {
             //======== CONSTRUCT QUERIES =============
             BasicDBObject userQuery = new BasicDBObject(); 
             userQuery.put("id_str", user.getId().toString());
-            BasicDBObject tweetsQuery = new BasicDBObject(); 
+            BasicDBObject tweetsQuery = new BasicDBObject(); //Here we count the original tweets user did.
             tweetsQuery.put("user_id", user.getId().toString());
-            BasicDBObject retweetsQuery = new BasicDBObject(); 
+            BasicDBObject retweetsQuery = new BasicDBObject(); //Here we get the tweets the user retweeted.
             retweetsQuery.put("retweetedUserID", user.getId().toString());            
 
             DBObject muser = mongo.getUsersColl().findOne(userQuery); 
@@ -112,6 +113,66 @@ public class FeaturesAnalysis {
         }
 
         writer.close();
+    }
+    
+    public FeaturesAnalysis(boolean flag) throws MongoException, UnknownHostException, FileNotFoundException, UnsupportedEncodingException, ParseException, URISyntaxException, JSONException, IOException{
+        System.out.println("started bypass..");
+        mongo = new MongoDBHandler();
+        ids = new HashSet<>();     
+        File file = new File("C:\\Users\\sokpa\\Documents\\NetBeansProjects\\Test\\badUsersLowEntropyIDS.txt");
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            String text;
+            while ((text = reader.readLine()) != null) {
+                ids.add(Long.parseLong(text));
+            }
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+                    
+        for(Long id : ids) {
+            user = new TwitterUser(id); //create user for given id
+
+            //======== CONSTRUCT QUERIES =============
+            BasicDBObject tweetsQuery = new BasicDBObject(); //Here we count the original tweets user did.
+            tweetsQuery.put("user_id", user.getId().toString());
+            BasicDBObject retweetsQuery = new BasicDBObject(); //Here we get the tweets the user retweeted.
+            retweetsQuery.put("retweetedUserID", user.getId().toString());            
+
+            // ========= TWEETS DETAILS =============
+            user.setTweets(mongo.getTweetsColl().count(tweetsQuery)); //original tweets user did
+            DBCursor tweets = mongo.getTweetsColl().find(tweetsQuery);
+            while (tweets.hasNext()) { 
+                DBObject status = tweets.next();
+                user.addStatus(status);
+            }
+            
+            // ========= RETWEETS DETAILS ===========
+            user.setRetweets(mongo.getRetweetsColl().count(retweetsQuery)); //retweets user did
+            DBCursor retweets = mongo.getRetweetsColl().find(retweetsQuery);
+            
+            BasicDBObject findTweet = new BasicDBObject();
+            while (retweets.hasNext()) {
+                DBObject status = retweets.next();
+                findTweet.put("id_str", status.get("originalTweetID").toString());
+                user.addStatus(mongo.getTweetsColl().findOne(findTweet));
+            }
+            
+            System.out.println("||||||||||||||||||||||||||||||||||||||| entropy for user: " +id);
+            for (DBObject tweet : user.getStatuses()) {
+            JSONObject jobj = new JSONObject(tweet.toString());
+            user.addTweet(jobj.getString("text"));
+            }
+            user.entropy();
+            
+        }
+
     }
     
     /**

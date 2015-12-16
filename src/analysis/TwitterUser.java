@@ -528,6 +528,7 @@ public class TwitterUser {
     } 
     
     public void cleanTweets(){
+        System.out.println("start cleaning tweets");
         for(String text: texts){
             
             String[] split = text.split("\\s+");
@@ -544,16 +545,20 @@ public class TwitterUser {
                 clean += " " + split[i];
             }
             clean = clean.substring(1);
-            if(clean.contains("http")){
-                System.out.println(clean);
-            }
-            cleanTexts.add(clean);
+//            if(clean.contains("http")){
+//                System.out.println(clean);
+//            }
+            
+            cleanTexts.add(clean.toLowerCase());
         }
+        System.out.println("=============LETS SEE CLEANED TEXTS: ");
+        for(String t : cleanTexts){ System.out.println(t); }
+        System.out.println("=====================================");
     }
 
     public void entropy(){
         cleanTweets();
-        
+        System.out.println("finished cleaning tweets");
         for(String text : cleanTexts){
             String[] split = text.split("\\s+");
             for(int i=0; i<=split.length-3; i++){
@@ -566,11 +571,20 @@ public class TwitterUser {
             return;
         }
         
+        for(String s: ngrams){
+            System.out.println(s);
+        }
+        
         //calculate Entropy
         for(String gram : ngrams){
-            double p = countNumberEqual(gram)/ngrams.size();
-            entropy = entropy -p*Math.log(p); //pi*log(pi);
+            System.out.println("gram: " +gram);
+            double p = countNumberEqual(gram)/ngrams.size(); //number of times ngram appear on ngrams list.
+            System.out.println(countNumberEqual(gram) + " / " +ngrams.size() +" = " + p);
+            entropy = entropy -p*(Math.log(p)/Math.log(2)); //pi*log(pi);
+            System.out.println("----------------------");
         }
+        System.out.println("****************************************************FINAL ENTROPY: " + entropy);
+
         
     }
     

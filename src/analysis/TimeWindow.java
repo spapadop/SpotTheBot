@@ -8,9 +8,6 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
  * @author Sokratis Papadopoulos
  */
 public class TimeWindow {
-//    private int windowID;
-//    private Date from;
-//    private Date to;
 
     private int totalRetweets;
     private int minRtPerHour;
@@ -25,9 +22,6 @@ public class TimeWindow {
     private double iqrRTrec;
 
     public TimeWindow() {
-//        this.windowID = -1;
-//        this.from = null;
-//        this.to = null;
 
         this.totalRetweets = 0;
         this.minRtPerHour = Integer.MAX_VALUE;
@@ -41,9 +35,6 @@ public class TimeWindow {
     }
 
     public TimeWindow(TimeChunk[] chunks) {
-//        this.windowID = id;
-//        this.from = from;
-//        this.to = to;
 
         this.totalRetweets = 0;
         this.minRtPerHour = Integer.MAX_VALUE;

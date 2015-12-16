@@ -29,7 +29,7 @@ public class UsersRetweetActivity {
 
         users = new HashMap<>();
         mongo = new MongoDBHandler();
-
+        
         DBCursor cursor = mongo.getRetweetsColl().find(); //get all (re)tweets in our database
         SimpleDateFormat format = new SimpleDateFormat("EE MMM dd HH:mm:ss z yyyy",
                                             Locale.ENGLISH);
@@ -55,9 +55,9 @@ public class UsersRetweetActivity {
         }
 
         //finish up - calculate AVG
-        for (UserEntry u : users.values()) {
-            u.finish();
-        }
+//        for (UserEntry u : users.values()) {
+//            u.finish();
+//        }
 
         //System.out.println("size of hashmap: " + users.size());
 
@@ -69,6 +69,7 @@ public class UsersRetweetActivity {
 //            if (!users.containsKey(id))
 //                System.out.println("User: "+ id + " does not exist !!!");
 //        }
+        
         PrintWriter writer = new PrintWriter("results.txt", "UTF-8");
         for (Map.Entry<Long, UserEntry> entry : users.entrySet()) {
             writer.println(entry.getKey() + " " + entry.getValue().getRetweets()
