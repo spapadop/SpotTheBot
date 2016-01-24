@@ -7,9 +7,12 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 
 /**
  * This class is used to implement the sampling of users from 10 defined bins
@@ -103,26 +106,25 @@ public final class Sample {
         }
 
         int usersFromCol = 0;
-        for (int i = 9; i >= 0; i--) { //for each and every bin take 25 users if possible
+        for (int i = 9; i >= 0; i--) {
             int count = 0;
             while (count < 25 && !bins[i].isEmpty()) { //while 25 ids are not yet extracted and bin is not empty
-                //find max value of occurance
-                Entry<Long, Integer> maxEntry = null;
-                for (Entry<Long, Integer> entry : bins[i].entrySet()) {
-                    if (maxEntry == null || entry.getValue() > maxEntry.getValue()) {
-                        maxEntry = entry;
-                    }
-                }
-                bins[i].remove(maxEntry.getKey()); //remove user from list
+                List<Long> keysAsArray = new ArrayList<>(bins[i].keySet());
+                Random r = new Random();
+                Long randomUserId = keysAsArray.get(r.nextInt(keysAsArray.size()));
+                Integer value = bins[i].get(randomUserId);
+
                 //add max user to sample
-                if (sample.add(maxEntry.getKey())) { //added IF to avoid duplicates
+                if (sample.add(randomUserId)) { //added IF to avoid duplicates
                     usersFromCol++;
                     count++;
-                    writeInCol[col - 3].println(maxEntry.getKey() + "\t" + maxEntry.getValue() + "\t" + (i + 1));
-                    writer.println(maxEntry.getKey() + "\t" + feature + "\t" + maxEntry.getValue() + "\t" + (i + 1));
+                    writeInCol[col - 3].println(randomUserId + "\t" + value + "\t" + (i + 1));
+                    writer.println(randomUserId + "\t" + feature + "\t" + value + "\t" + (i + 1));
                 }
+                bins[i].remove(randomUserId); //remove user from list
             }
         }
+
         System.out.println("Initially, col: " + col + " contributed: " + usersFromCol);
 
         int remaining = 250 - usersFromCol;
@@ -134,21 +136,21 @@ public final class Sample {
                 for (int i = 9; i >= 0; i--) { //take one more user from each bin
                     boolean taken = false;
                     while (remaining > 0 && !bins[i].isEmpty() && !taken) { //while 25 ids are not yet extracted and bin is not empty
-                        Entry<Long, Integer> maxEntry = null;
-                        for (Entry<Long, Integer> entry : bins[i].entrySet()) {
-                            if (maxEntry == null || entry.getValue() > maxEntry.getValue()) {
-                                maxEntry = entry;
-                            }
-                        }
-                        bins[i].remove(maxEntry.getKey()); //remove user from list
+                        List<Long> keysAsArray = new ArrayList<>(bins[i].keySet());
+                        Random r = new Random();
+                        Long randomUserId = keysAsArray.get(r.nextInt(keysAsArray.size()));
+                        Integer value = bins[i].get(randomUserId);
+
                         //add max user to sample
-                        if (sample.add(maxEntry.getKey())) { //added IF to avoid duplicates
+                        if (sample.add(randomUserId)) { //added IF to avoid duplicates
                             remaining--;
                             taken = true;
                             usersFromCol++;
-                            writeInCol[col - 3].println(maxEntry.getKey() + "\t" + maxEntry.getValue() + "\t" + (i + 1));
-                            writer.println(maxEntry.getKey() + "\t" + feature + "\t" + maxEntry.getValue() + "\t" + (i + 1));
+                            writeInCol[col - 3].println(randomUserId + "\t" + value + "\t" + (i + 1));
+                            writer.println(randomUserId + "\t" + feature + "\t" + value + "\t" + (i + 1));
                         }
+
+                        bins[i].remove(randomUserId); //remove user from list
                     }
                 }
             } while (remaining != 0);
@@ -157,8 +159,7 @@ public final class Sample {
         System.out.println("sample size after: " + sample.size());
         System.out.println("");
     }
-    
-    
+
     //****************** LOADING USERS TO BINS *********************************
     private static void loadUsersToBinsOfMaxRT(int runNum, int col) throws FileNotFoundException, IOException {
         reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Desktop\\newData\\results" + runNum + "-filtered-retOverTwo.txt"));
