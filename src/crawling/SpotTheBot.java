@@ -33,6 +33,11 @@ public class SpotTheBot {
 
     public static void main(String[] args) throws JSONException, MongoException, UnknownHostException, FileNotFoundException, IOException, UnsupportedEncodingException, URISyntaxException, ParseException {
 
+        
+        MongoDBHandler m = new MongoDBHandler();
+        m.suspiciousTweetActivity();
+        
+        
 //        Crawler crawl = new Crawler(); //starts the crawling
 //
 //        //create task to be executed every 1 hour

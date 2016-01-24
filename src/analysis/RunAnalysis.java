@@ -55,7 +55,7 @@ public class RunAnalysis {
         //UsersStats second = new UsersStats();
         //SuspiciousTweetActivity third = new SuspiciousTweetActivity();
         //UsersRetweetActivity fourth = new UsersRetweetActivity();
-        FeaturesAnalysis fa = new FeaturesAnalysis(true);
+        //FeaturesAnalysis fa = new FeaturesAnalysis(true);
 
         //========== ANALYZE TIME-WINDOWS DATA ============
         //UsersWithCharacteristics fifth = new UsersWithCharacteristics();

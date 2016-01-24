@@ -45,7 +45,7 @@ public class CalculateChunksAndWindows {
         cursor = mongo.getRetweetsColl().find(); //get all retweets in our database
 
         userPerChunk = new HashMap<>();
-        writer = new PrintWriter("results-per-time-window.txt", "UTF-8");
+        writer = new PrintWriter("results1.txt", "UTF-8");
 
         chunkCounter = 0;
         winCounter = 0;
@@ -64,13 +64,16 @@ public class CalculateChunksAndWindows {
         calculateChunk();
 
         writer.close();
-        int howManyLines = countLines("results-per-time-window.txt");
-        System.out.println("Dirty file has: " + howManyLines + " lines.");
+        int howManyLines = countLines("results1.txt");
+        System.out.println("Initial file has: " + howManyLines + " lines.");
         
-        removeZeroEntries("results-per-time-window.txt");
-        howManyLines = countLines("results-per-time-window-clear.txt");
+        removeZeroEntries("results1.txt"); //removes all zero lines (time windows with no activity)
+        howManyLines = countLines("results1-filtered.txt");
+        System.out.println("Filtered (no-zeros) file has: " + howManyLines + " lines.");
         
-        System.out.println("Clean file has: " + howManyLines + " lines.");
+        filterRetweetOnly("results1-filtered.txt");
+        howManyLines = countLines("results1-filtered-retOnly.txt");
+        System.out.println("Final no-zeros retOnly file has: " + howManyLines + " lines.");
     }
 
     /**
@@ -196,7 +199,7 @@ public class CalculateChunksAndWindows {
 
         File file = new File(readPath);
         BufferedReader reader;
-        PrintWriter writer = new PrintWriter("results-per-time-window-clear.txt", "UTF-8");
+        PrintWriter writer = new PrintWriter("results1-filtered.txt", "UTF-8");
 
         reader = new BufferedReader(new FileReader(file));
 
@@ -215,6 +218,41 @@ public class CalculateChunksAndWindows {
                     }
                 }
                 if (flag) {
+                    writer.println(text);
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+
+//        System.out.println("finished reading...");
+        writer.close();
+//        System.out.println("finished writing...");
+    }
+    
+    private void filterRetweetOnly(String path) throws FileNotFoundException, UnsupportedEncodingException{
+        File file = new File(path);
+        BufferedReader reader;
+        PrintWriter writer = new PrintWriter("results1-filtered-retOnly.txt", "UTF-8");
+
+        reader = new BufferedReader(new FileReader(file));
+
+//        System.out.println("start reading...");
+        try {
+            String text;
+            while ((text = reader.readLine()) != null) {
+                String[] splited = text.split("\\s+");
+                
+                if (!splited[2].equals("0")) {
                     writer.println(text);
                 }
             }

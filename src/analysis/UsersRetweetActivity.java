@@ -55,9 +55,9 @@ public class UsersRetweetActivity {
         }
 
         //finish up - calculate AVG
-//        for (UserEntry u : users.values()) {
-//            u.finish();
-//        }
+        for (UserEntry u : users.values()) {
+            u.finish();
+        }
 
         //System.out.println("size of hashmap: " + users.size());
 

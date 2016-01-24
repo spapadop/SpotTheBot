@@ -1,9 +1,13 @@
 package analysis;
 
 import com.mongodb.DBObject;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
@@ -98,6 +102,7 @@ public class TwitterUser {
     private double compressionRatio;
     private double entropy;
     private ArrayList<String> ngrams; // n=3
+    private HashMap<String,Integer> grams;
     private double urlEntropy;
 
     /**
@@ -163,6 +168,7 @@ public class TwitterUser {
         this.compressionRatio = 0;
         this.entropy = 0;
         this.ngrams = new ArrayList<>();
+        this.grams = new HashMap<>();
         this.urlEntropy =0;
         
     }
@@ -528,7 +534,6 @@ public class TwitterUser {
     } 
     
     public void cleanTweets(){
-        System.out.println("start cleaning tweets");
         for(String text: texts){
             
             String[] split = text.split("\\s+");
@@ -545,47 +550,87 @@ public class TwitterUser {
                 clean += " " + split[i];
             }
             clean = clean.substring(1);
-//            if(clean.contains("http")){
-//                System.out.println(clean);
-//            }
             
             cleanTexts.add(clean.toLowerCase());
         }
-        System.out.println("=============LETS SEE CLEANED TEXTS: ");
-        for(String t : cleanTexts){ System.out.println(t); }
-        System.out.println("=====================================");
     }
 
-    public void entropy(){
+    public double entropy(){
         cleanTweets();
-        System.out.println("finished cleaning tweets");
         for(String text : cleanTexts){
             String[] split = text.split("\\s+");
             for(int i=0; i<=split.length-3; i++){
-                ngrams.add(split[i] +" "+ split[i+1]+" " + split[i+2]);
+                String gram = split[i] + " " + split[i+1] + " " + split[i+2];
+                if(grams.get(gram) == null){
+                    grams.put(gram, 1);
+                } else {
+                    grams.replace(gram, grams.get(gram)+1);
+                }
             }
         }
         
-        if (ngrams.isEmpty()){
+        if (grams.isEmpty()){
             entropy = 0;
-            return;
+            return 0;
         }
         
-        for(String s: ngrams){
-            System.out.println(s);
-        }
+//        for (Map.Entry pair : grams.entrySet()) {
+//            System.out.println(pair.getKey() + " = " + pair.getValue());
+//        }
         
-        //calculate Entropy
-        for(String gram : ngrams){
-            System.out.println("gram: " +gram);
-            double p = countNumberEqual(gram)/ngrams.size(); //number of times ngram appear on ngrams list.
-            System.out.println(countNumberEqual(gram) + " / " +ngrams.size() +" = " + p);
-            entropy = entropy -p*(Math.log(p)/Math.log(2)); //pi*log(pi);
-            System.out.println("----------------------");
+        int sum = calculateSumOfFreq();
+        for (Map.Entry pair : grams.entrySet()) {
+            double p = Double.parseDouble(pair.getValue().toString())/sum;
+            entropy -= p*(Math.log(p)/Math.log(2));
+        }           
+        //System.out.println("*FINAL ENTROPY: " + entropy);
+        return entropy;
+        
+    }
+    
+    private int calculateSumOfFreq(){
+        int sum=0;
+        Iterator it = grams.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            sum+= Integer.parseInt(pair.getValue().toString());
         }
-        System.out.println("****************************************************FINAL ENTROPY: " + entropy);
+        return sum;
+    }
+    
+    public static void normalizeEntropy() throws FileNotFoundException, IOException{
+        
+        BufferedReader reader = new BufferedReader(new FileReader("test3.csv"));
+        PrintWriter writer = new PrintWriter("run2_all_final_entropy.csv", "UTF-8");
+        writer.println(reader.readLine());
+        String line = reader.readLine();
+        while (line != null) {
+            String[] tokens = line.split(",");
+            double normed=0;
+            if (Math.log((Double.parseDouble(tokens[5]) + Double.parseDouble(tokens[6]))) != 0){
+                normed= Double.parseDouble(tokens[tokens.length-1]) / (Math.log((Double.parseDouble(tokens[5]) + Double.parseDouble(tokens[6])))/Math.log(2));
+            } else {
+                normed = -11;
+                System.out.println("FOUND ZERO TWEETS AND RETWEETS **************************************8888");
+            }
+            //System.out.println(tokens[tokens.length-1] + " / log(" + tokens[5] + "+" + tokens[6] + ")"+ " = " + normed);
+            
+            int i=0;
+            for(String token : tokens){
+                if(i==tokens.length-1){
+                    writer.print(normed + "\n");
+                } else {
+                    writer.print(token + ",");
 
-        
+                }
+                i++;
+            }
+            
+            
+            line = reader.readLine();
+        }
+        reader.close();       
+        writer.close();
     }
     
     private double countNumberEqual(String itemToCheck) {

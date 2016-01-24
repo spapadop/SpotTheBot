@@ -189,40 +189,4 @@ public class ConvertToOccurrences {
             map.put(key, 1);
         }
     }
-    
-    private void filterRetweetOnly() throws FileNotFoundException, UnsupportedEncodingException{
-        File file = new File("C:\\Users\\sokpa\\Documents\\GitHub\\SpotTheBot\\results-per-time-window-clear.txt");
-        BufferedReader reader;
-        PrintWriter writer = new PrintWriter("results-per-time-window-super-clear.txt", "UTF-8");
-
-        reader = new BufferedReader(new FileReader(file));
-
-//        System.out.println("start reading...");
-        try {
-            String text;
-            while ((text = reader.readLine()) != null) {
-                String[] splited = text.split("\\s+");
-                
-                if (!splited[2].equals("0")) {
-                    writer.println(text);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-            } catch (IOException e) {
-            }
-        }
-
-//        System.out.println("finished reading...");
-        writer.close();
-//        System.out.println("finished writing...");
-    }
-
 }

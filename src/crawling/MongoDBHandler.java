@@ -392,22 +392,21 @@ public class MongoDBHandler {
     }
     
     public void suspiciousTweetActivity() throws FileNotFoundException, UnsupportedEncodingException, MongoException, UnknownHostException, IOException {
-        System.out.println("Starting procedure...");
         BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Documents\\NetBeansProjects\\Test\\badUsersLowEntropyIDS.txt"));
         String line = reader.readLine();
         
         while (line !=null) { //for every user
-            System.out.println("==========" + line + "===========");
+            //System.out.println("==========" + line + "===========");
             long id = Long.parseLong(line);
             
             PrintWriter writer = new PrintWriter(id + ".txt", "UTF-8"); //create a text file for him
-            System.out.println("starting tweets query");
+            //System.out.println("starting tweets query");
             BasicDBObject tweetsQuery = new BasicDBObject(); //make a query to get original tweets of user
             tweetsQuery.put("user_id", line);
 
             DBCursor tweets = tweetsColl.find(tweetsQuery);
             int k = 1;
-            System.out.println("found relevant tweets");
+            //System.out.println("found relevant tweets");
             writer.println("======================================= ORIGINAL TWEETS BY USER ======================================");
             while (tweets.hasNext()) { //for every tweet
                 DBObject tweet = tweets.next(); //store user object
@@ -416,12 +415,12 @@ public class MongoDBHandler {
                 k++;
             }
 
-            System.out.println("starting retweets query");
+            //System.out.println("starting retweets query");
             BasicDBObject retweetsQuery = new BasicDBObject(); //make a query to count retweets of user
             retweetsQuery.put("retweetedUserID", line);
 
             DBCursor retweets = retweetsColl.find(retweetsQuery);
-            System.out.println("found relevant retweets");
+            //System.out.println("found relevant retweets");
             if (retweets.count() > 0) {
                 k = 1;
                 writer.println();

@@ -116,16 +116,32 @@ public class FeaturesAnalysis {
     }
     
     public FeaturesAnalysis(boolean flag) throws MongoException, UnknownHostException, FileNotFoundException, UnsupportedEncodingException, ParseException, URISyntaxException, JSONException, IOException{
-        System.out.println("started bypass..");
         mongo = new MongoDBHandler();
-        ids = new HashSet<>();     
-        File file = new File("C:\\Users\\sokpa\\Documents\\NetBeansProjects\\Test\\badUsersLowEntropyIDS.txt");
+        File file = new File("C:\\Users\\sokpa\\Desktop\\safe\\run2_all_final.csv");
+        writer = new PrintWriter("test3.csv", "UTF-8");
+
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(new FileReader(file));
-            String text;
+            String text = reader.readLine();
+            writer.println(text);
+            
             while ((text = reader.readLine()) != null) {
-                ids.add(Long.parseLong(text));
+                String[] tokens = text.split(",");
+                Long id = Long.parseLong(tokens[0]);
+                double entropy = calcEntropy(id);
+                
+                int i=0;
+                for(String token : tokens){
+                    if(i==tokens.length-1){
+                        writer.print(entropy + "\n");
+                    } else {
+                        writer.print(token + ",");
+
+                    }
+                    i++;
+                }
+                
             }
         } finally {
             try {
@@ -135,8 +151,12 @@ public class FeaturesAnalysis {
             } catch (IOException e) {
             }
         }
-                    
-        for(Long id : ids) {
+        writer.close();
+               
+
+    }
+    
+    private double calcEntropy(Long id) throws JSONException{
             user = new TwitterUser(id); //create user for given id
 
             //======== CONSTRUCT QUERIES =============
@@ -164,16 +184,12 @@ public class FeaturesAnalysis {
                 user.addStatus(mongo.getTweetsColl().findOne(findTweet));
             }
             
-            System.out.println("||||||||||||||||||||||||||||||||||||||| entropy for user: " +id);
             for (DBObject tweet : user.getStatuses()) {
             JSONObject jobj = new JSONObject(tweet.toString());
             user.addTweet(jobj.getString("text"));
             }
-            user.entropy();
-            
-        }
-
-    }
+            return user.entropy();
+}
     
     /**
      * Prints the header of the output file.
