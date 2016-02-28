@@ -13,9 +13,12 @@ import java.text.ParseException;
 import twitter4j.JSONException;
 
 import crawling.MongoDBHandler;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Timer;
+import twitter4j.TwitterException;
 
 /**
  * This is the main class which runs the whole analysis of the project. It
@@ -26,8 +29,17 @@ import java.util.List;
  */
 public class RunAnalysis {
 
-    public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException, MongoException, URISyntaxException, JSONException {
+    public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException, MongoException, URISyntaxException, JSONException, TwitterException {
 
+        AnnotationUser u = new AnnotationUser();
+        
+        
+//        AnnotationSupport checkUsers = new AnnotationSupport();
+//                
+//        //create task to be executed every 1 hour
+//        Timer time = new Timer();
+//        time.schedule(checkUsers, 0, 1800000);
+        
 //        MongoDBHandler m = new MongoDBHandler();
 //        DBCursor cursor = m.getFollowedUsersColl().find();
 //
@@ -55,7 +67,7 @@ public class RunAnalysis {
         //UsersStats second = new UsersStats();
         //SuspiciousTweetActivity third = new SuspiciousTweetActivity();
         //UsersRetweetActivity fourth = new UsersRetweetActivity();
-        //FeaturesAnalysis fa = new FeaturesAnalysis(true);
+        //FeaturesAnalysis fa = new FeaturesAnalysis(true, true);
 
         //========== ANALYZE TIME-WINDOWS DATA ============
         //UsersWithCharacteristics fifth = new UsersWithCharacteristics();

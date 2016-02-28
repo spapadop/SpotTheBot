@@ -26,6 +26,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.shortdistance.LevenshteinDistance;
 import twitter4j.JSONArray;
 import twitter4j.JSONException;
 import twitter4j.JSONObject;
@@ -40,7 +41,8 @@ import twitter4j.User;
 public class TwitterUser {
 
     private Long id; //stores the userID
-
+    private String screenName; //todo
+    
     //FOLLOWERS - FOLLOWEES
     private int followers;
     private int followees;
@@ -69,6 +71,9 @@ public class TwitterUser {
     //DEFAULT PROFILE & IMG
     private boolean defProf;
     private boolean defProfImg;
+    private String profURL;
+    private String bannerURL;
+    
     
     //HASHTAGS
     private int hashtags;
@@ -120,7 +125,8 @@ public class TwitterUser {
     public TwitterUser(Long userId) {
 
         this.id = userId;
-
+        this.screenName = null;
+        
         this.followers = 0;
         this.followees = 0;
         this.fol_fol_ratio = 0;
@@ -533,6 +539,9 @@ public class TwitterUser {
         setCompressionRatio(calculateRatio(compressed, uncompressed));
     } 
     
+    /**
+     * Removes mentions & links
+     */
     public void cleanTweets(){
         for(String text: texts){
             
@@ -550,9 +559,12 @@ public class TwitterUser {
                 clean += " " + split[i];
             }
             clean = clean.substring(1);
-            
-            cleanTexts.add(clean.toLowerCase());
+            clean = clean.replaceAll("[\\t\\n\\r]"," ");
+            clean = clean.replaceAll("\"", "");
+            clean = clean.toLowerCase();
+            cleanTexts.add(clean);
         }
+        
     }
 
     public double entropy(){
@@ -587,6 +599,46 @@ public class TwitterUser {
         return entropy;
         
     }
+    
+    /**
+     * Using the levenshtein distance it calculates how many tweets are actually
+     * duplicates.
+     */
+    public HashMap<String,Integer> duplicates(){
+        cleanTweets(); //remove mentions & links
+        HashMap<String, Integer> uniqueTexts = new HashMap<>(); //used to store the unique texts of tweets
+ 
+        if (!cleanTexts.isEmpty()) {
+            boolean flag = false;
+
+            uniqueTexts.put(cleanTexts.get(0),1);
+
+            for (int i = 1; i < cleanTexts.size(); i++) {
+
+                for (Map.Entry pair : uniqueTexts.entrySet()) {
+                    String entry = pair.getKey().toString();
+                    
+                    int distance = LevenshteinDistance.computeDistance(cleanTexts.get(i), entry);
+                    double normalized_distance = (double) distance / (cleanTexts.get(i).length() + entry.length());
+
+                    if (normalized_distance < 0.1) {
+                        uniqueTexts.replace(entry, Integer.parseInt(pair.getValue().toString())+1);
+                        flag = true;
+                        break;
+                    }
+                }
+
+                if (!flag) {
+                    uniqueTexts.put(cleanTexts.get(i),1);
+                    flag = false;
+                }
+            }
+        }
+        
+        return uniqueTexts;
+        
+    }
+    
     
     private int calculateSumOfFreq(){
         int sum=0;
