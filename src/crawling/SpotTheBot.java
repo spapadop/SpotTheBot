@@ -1,5 +1,6 @@
 package crawling;
 
+import analysis.AnnotationSupport;
 import analysis.FeaturesAnalysis;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
@@ -17,6 +18,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Timer;
 import twitter4j.JSONException;
+import twitter4j.TwitterException;
 import twitter4j.User;
 
 /**
@@ -31,11 +33,10 @@ public class SpotTheBot {
 
     private static final int TASK_REPEAT = 3600000; // one hour: 3600000 | time-repeat of checking task for updating list of potential spammers | 60.000 milliseconds = 1 minute
 
-    public static void main(String[] args) throws JSONException, MongoException, UnknownHostException, FileNotFoundException, IOException, UnsupportedEncodingException, URISyntaxException, ParseException {
-
+    public static void main(String[] args) throws JSONException, MongoException, UnknownHostException, FileNotFoundException, IOException, UnsupportedEncodingException, URISyntaxException, ParseException, TwitterException {
         
-        MongoDBHandler m = new MongoDBHandler();
-        m.suspiciousTweetActivity();
+//        MongoDBHandler m = new MongoDBHandler();
+//        m.suspiciousTweetActivity();
         
         
 //        Crawler crawl = new Crawler(); //starts the crawling

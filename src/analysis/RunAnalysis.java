@@ -31,14 +31,14 @@ public class RunAnalysis {
 
     public static void main(String[] args) throws UnknownHostException, ParseException, FileNotFoundException, UnsupportedEncodingException, IOException, MongoException, URISyntaxException, JSONException, TwitterException {
 
-        AnnotationUser u = new AnnotationUser();
+//        AnnotationUser u = new AnnotationUser();
         
         
-//        AnnotationSupport checkUsers = new AnnotationSupport();
-//                
-//        //create task to be executed every 1 hour
-//        Timer time = new Timer();
-//        time.schedule(checkUsers, 0, 1800000);
+        AnnotationSupport checkUsers = new AnnotationSupport();
+                
+        //create task to be executed every 1 hour
+        Timer time = new Timer();
+        time.schedule(checkUsers, 0, 1800000);
         
 //        MongoDBHandler m = new MongoDBHandler();
 //        DBCursor cursor = m.getFollowedUsersColl().find();

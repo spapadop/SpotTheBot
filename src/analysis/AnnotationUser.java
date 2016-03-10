@@ -36,6 +36,7 @@ public class AnnotationUser {
     private final MongoDBHandler mongo;
     private PrintWriter writer;
     private TwitterUser user;
+    private long id;
     private String screenName;
     private boolean verified;
     private int age;
@@ -44,29 +45,44 @@ public class AnnotationUser {
     private String imgURL;
     private String bannerURL;
     private String linkToProf;
+    
+    private HashMap<Long, String> binData;
+    
+    private void loadBinData() throws IOException{
+        binData = new HashMap<>();
+        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Desktop\\randomSample\\run1\\sample.txt"));
+        String line = reader.readLine(); //header
 
-    public AnnotationUser() throws UnknownHostException, FileNotFoundException, UnsupportedEncodingException, IOException, JSONException {
+        line = reader.readLine();//body
+        while (line != null) {
+            String[] tokens = line.split("\t");
+
+            Long userID = Long.parseLong(tokens[0]);
+            String sampleDataLine = tokens[1] + "\t" + tokens[2] + "\t" + tokens[3];
+
+            binData.put(userID, sampleDataLine);
+            line = reader.readLine();
+        }
+        reader.close();
+    }
+
+    public AnnotationUser(ArrayList<User> detailedUsers) throws UnknownHostException, FileNotFoundException, UnsupportedEncodingException, IOException, JSONException {
         mongo = new MongoDBHandler();
+        loadBinData();   
 
-        File file = new File("C:\\Users\\sokpa\\Desktop\\randomSample\\run1\\sample.txt");
-        BufferedReader reader = new BufferedReader(new FileReader(file));
-        String sampleDataLine = reader.readLine(); //header-out
-        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\annotation\\users1\\results.txt", "UTF-8");
+        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\results.txt", "UTF-8");
         writeTemplate();
-        
-        while ((sampleDataLine = reader.readLine()) != null) { //FOR EVERY USER IN THE SAMPLE
 
-            screenName = null;
-            verified = false;
-            age = 0;
-            description = null;
-            fullName = null;
-            imgURL = null;
-            bannerURL = null;
-            linkToProf = null;
-
-            String[] tokens = sampleDataLine.split("\t");
-            Long id = Long.parseLong(tokens[0]);
+        for (User u : detailedUsers) {
+            id = u.getId();
+            screenName = u.getScreenName();
+            verified = u.isVerified();
+            setAge(u.getCreatedAt().toString());
+            description = u.getDescription();
+            fullName = u.getName();
+            imgURL = u.getBiggerProfileImageURL();
+            bannerURL = u.getProfileBannerURL();
+            linkToProf = "https://twitter.com/" + screenName;
 
             HashMap<String, Integer> dupli = calcDuplicates(id);
             int numDuplicates = 0;
@@ -77,11 +93,16 @@ public class AnnotationUser {
             }
 
             HashMap<String, Integer> top5 = findTop5Dublicates(dupli);
-
-            writer.print(sampleDataLine + "\t" + fullName + "\t" + screenName + "\t" + verified + "\t" + age + "\t" + numDuplicates
+            
+            screenName = screenName.replaceAll("\"", "");;
+            fullName = fullName.replaceAll("\"", "");;
+            description = description.replaceAll("[\\t\\n\\r]", " ").toLowerCase().trim();
+            description = description.replaceAll("\"", "");
+            
+            writer.print(id + "\t" + binData.get(id) + "\t" + fullName + "\t" + screenName + "\t" + verified + "\t" + age + "\t" + numDuplicates
                     + "\t" + description + "\t" + imgURL + "\t" + bannerURL + "\t" + linkToProf
             );
-            
+
             for (Map.Entry pair : top5.entrySet()) {
                 if (pair.getKey() != null) {
                     String query = "https://twitter.com/search?q=";
@@ -91,33 +112,31 @@ public class AnnotationUser {
                         query += "%20" + words[i];
                     }
                     query += "&src=typd";
-                    writer.print("\t" + pair.getKey() + "\t" + pair.getValue() + "\t" + query);
+                    writer.print("\t" + user.getCleanDirtyTexts().get(pair.getKey().toString()) + "\t" + pair.getValue() + "\t" + query);
                 } else {
-                    writer.print("\t" + pair.getKey() + "\t" + pair.getValue() + "\t" + null);
+                    writer.print("\t" + null + "\t" + null + "\t" + null);
                 }
             }
-            
-            if(top5.size()<5){
-                for(int i=0; i<(5-top5.size()); i++){
+
+            if (top5.size() < 5) {
+                for (int i = 0; i < (5 - top5.size()); i++) {
                     writer.print("\t" + null + "\t" + null + "\t" + null);
                 }
             }
 
             String[] topWords = findTop10Words();
-            for(int i=0; i<10; i++){
+            for (int i = 0; i < 10; i++) {
                 writer.print("\t" + topWords[i]);
             }
-            
-            writer.print("\n");
 
+            writer.print("\n");
         }
+
         writer.close();
-        reader.close();
-        
+
         removeDeletedUsers();
 
     }
-    
 
     private String[] findTop10Words() throws FileNotFoundException, IOException {
         String[] top10words = new String[10];
@@ -135,29 +154,29 @@ public class AnnotationUser {
                 }
             }
         }
-        
-        
+
         //remove stopwords
         File file = new File("C:\\Users\\sokpa\\Desktop\\annotation\\stopwords.txt");
         BufferedReader reader = new BufferedReader(new FileReader(file));
-        HashSet<String> stopwords= new HashSet<>();
+        HashSet<String> stopwords = new HashSet<>();
         String stopword;
-        while ((stopword = reader.readLine()) != null) { 
+        while ((stopword = reader.readLine()) != null) {
             stopwords.add(stopword);
         }
-        
+
         stopwords.add("");
         stopwords.add(",");
         stopwords.add(".");
         stopwords.add(":");
         stopwords.add(";");
         stopwords.add("!");
+        stopwords.add("-");
         
-        
+
         for (String sw : stopwords) {
             words.remove(sw);
-        }  
-        
+        }
+
         for (int i = 0; i < 10; i++) {
             int max = -10;
             String maxKey = null;
@@ -207,34 +226,34 @@ public class AnnotationUser {
         BasicDBObject retweetsQuery = new BasicDBObject(); //Here we get the tweets the user retweeted.
         retweetsQuery.put("retweetedUserID", user.getId().toString());
 
-        // =========== USER DETAILS ==============
-        DBObject muser = mongo.getUsersColl().findOne(userQuery);
-
-        verified = Boolean.getBoolean(muser.get("verified").toString());
-        setAge(muser.get("created_at").toString());
-        screenName = muser.get("screen_name").toString().replaceAll("\"", "");;
-        fullName = muser.get("name").toString().replaceAll("\"", "");;
-        linkToProf = "https://twitter.com/" + screenName;
-
-        try {
-            imgURL = muser.get("profile_image_url").toString();
-        } catch (java.lang.NullPointerException ex) {
-            //System.out.println("IMGURL not found.");
-        }
-
-        try {
-            bannerURL = muser.get("profile_banner_url").toString();
-        } catch (java.lang.NullPointerException ex) {
-            //System.out.println("BANNERURL not found.");
-        }
-
-        try {
-            description = muser.get("description").toString();
-            description = description.replaceAll("[\\t\\n\\r]"," ").toLowerCase().trim();
-            description = description.replaceAll("\"", "");
-        } catch (java.lang.NullPointerException ex) {
-            //System.out.println("DESCRIPTION not found.");
-        }
+//        // =========== USER DETAILS ==============
+//        DBObject muser = mongo.getUsersColl().findOne(userQuery);
+//
+//        verified = Boolean.getBoolean(muser.get("verified").toString());
+//        setAge(muser.get("created_at").toString());
+//        screenName = muser.get("screen_name").toString().replaceAll("\"", "");;
+//        fullName = muser.get("name").toString().replaceAll("\"", "");;
+//        linkToProf = "https://twitter.com/" + screenName;
+//
+//        try {
+//            imgURL = muser.get("profile_image_url").toString();
+//        } catch (java.lang.NullPointerException ex) {
+//            //System.out.println("IMGURL not found.");
+//        }
+//
+//        try {
+//            bannerURL = muser.get("profile_banner_url").toString();
+//        } catch (java.lang.NullPointerException ex) {
+//            //System.out.println("BANNERURL not found.");
+//        }
+//
+//        try {
+//            description = muser.get("description").toString();
+//            description = description.replaceAll("[\\t\\n\\r]", " ").toLowerCase().trim();
+//            description = description.replaceAll("\"", "");
+//        } catch (java.lang.NullPointerException ex) {
+//            //System.out.println("DESCRIPTION not found.");
+//        }
 
         // ========= TWEETS DETAILS =============
         user.setTweets(mongo.getTweetsColl().count(tweetsQuery)); //original tweets user did
@@ -264,16 +283,16 @@ public class AnnotationUser {
 
     private void writeTemplate() throws FileNotFoundException, UnsupportedEncodingException {
         writer.print("userID" + "\t" + "Feature" + "\t" + "timesOccuredInBin" + "\t" + "binNum" + "\t" + "FullName" + "\t" + "ScreenName" + "\t" + "Verified" + "\t" + "Age" + "\t" + "numDuplicates");
-        writer.print("\t"+"Description");
-        writer.print("\t"+"Profile picture");
-        writer.print("\t"+"Profile banner");
-        writer.print("\t"+"Link to profil");
-        writer.print("\t"+"tweet1" + "\t" + "numTimesPosted1" + "\t" + "Link_to_live_feed_for_text1");
-        writer.print("\t"+"tweet2" + "\t" + "numTimesPosted2" + "\t" + "Link_to_live_feed_for_text2");
-        writer.print("\t"+"tweet3" + "\t" + "numTimesPosted3" + "\t" + "Link_to_live_feed_for_text3");
-        writer.print("\t"+"tweet4" + "\t" + "numTimesPosted4" + "\t" + "Link_to_live_feed_for_text4");
-        writer.print("\t"+"tweet5" + "\t" + "numTimesPosted5" + "\t" + "Link_to_live_feed_for_text5");
-        writer.print("\t"+"word1" + "\t" + "word2" + "\t" + "word3" + "\t" + "word4" + "\t" + "word5" + "\t" + "word6" + "\t" + "word7" + "\t" + "word8" + "\t" + "word9" + "\t" + "word10");
+        writer.print("\t" + "Description");
+        writer.print("\t" + "Profile picture");
+        writer.print("\t" + "Profile banner");
+        writer.print("\t" + "Link to profil");
+        writer.print("\t" + "tweet1" + "\t" + "numTimesPosted1" + "\t" + "Link_to_live_feed_for_text1");
+        writer.print("\t" + "tweet2" + "\t" + "numTimesPosted2" + "\t" + "Link_to_live_feed_for_text2");
+        writer.print("\t" + "tweet3" + "\t" + "numTimesPosted3" + "\t" + "Link_to_live_feed_for_text3");
+        writer.print("\t" + "tweet4" + "\t" + "numTimesPosted4" + "\t" + "Link_to_live_feed_for_text4");
+        writer.print("\t" + "tweet5" + "\t" + "numTimesPosted5" + "\t" + "Link_to_live_feed_for_text5");
+        writer.print("\t" + "word1" + "\t" + "word2" + "\t" + "word3" + "\t" + "word4" + "\t" + "word5" + "\t" + "word6" + "\t" + "word7" + "\t" + "word8" + "\t" + "word9" + "\t" + "word10");
         writer.print("\n");
     }
 
@@ -307,30 +326,30 @@ public class AnnotationUser {
         int toReturn = (int) temp;
         return toReturn;
     }
-    
-    private void removeDeletedUsers() throws FileNotFoundException, UnsupportedEncodingException, IOException{
-        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\annotation\\users1\\finalResults.txt", "UTF-8");
-        
+
+    private void removeDeletedUsers() throws FileNotFoundException, UnsupportedEncodingException, IOException {
+        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\finalResults.txt", "UTF-8");
+
         File file = new File("C:\\Users\\sokpa\\Desktop\\run1_deleted.txt");
-        BufferedReader reader = new BufferedReader(new FileReader(file)); 
+        BufferedReader reader = new BufferedReader(new FileReader(file));
         HashSet<Long> delUsers = new HashSet<>();
         String line;
-        while ((line = reader.readLine()) != null) { 
+        while ((line = reader.readLine()) != null) {
             delUsers.add(Long.parseLong(line));
         }
         reader.close();
-        
-        file = new File("C:\\Users\\sokpa\\Desktop\\annotation\\users1\\results.txt");
-        reader = new BufferedReader(new FileReader(file)); 
+
+        file = new File("C:\\Users\\sokpa\\Desktop\\results.txt");
+        reader = new BufferedReader(new FileReader(file));
         line = reader.readLine(); //header out
         writer.println(line);
-        while ((line = reader.readLine()) != null) { 
+        while ((line = reader.readLine()) != null) {
             String[] tokens = line.split("\t");
-            if(!delUsers.contains(Long.parseLong(tokens[0]))){
-               writer.println(line);
+            if (!delUsers.contains(Long.parseLong(tokens[0]))) {
+                writer.println(line);
             }
         }
-        
+
         reader.close();
         writer.close();
     }

@@ -7,11 +7,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import twitter4j.AccountSettings;
 import twitter4j.IDs;
+import twitter4j.JSONException;
 import twitter4j.PagableResponseList;
 import twitter4j.ResponseList;
 import twitter4j.Twitter;
@@ -38,9 +41,13 @@ public class AnnotationSupport extends TimerTask{
     
     public int pos=0;
     
+    
+    private ArrayList<User> detailedUsers;
+    
     public AnnotationSupport() throws TwitterException, IOException{
         configuration();
         usersList();
+        detailedUsers = new ArrayList<>();
     }
     
     private void configuration(){
@@ -57,7 +64,7 @@ public class AnnotationSupport extends TimerTask{
     }
     
     public final void usersList() throws FileNotFoundException, IOException{
-        users = new Long[889];
+        users = new Long[1000];
         int i=0;
         BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Desktop\\randomSample\\run1\\sample.txt"));
         String line= reader.readLine(); //header
@@ -77,9 +84,7 @@ public class AnnotationSupport extends TimerTask{
         
         for(int i=pos; i<pos+100; i++){
             try {
-                User user = twitter.showUser(users[i]);
-                
-                
+                detailedUsers.add(twitter.showUser(users[i]));
             } catch (TwitterException ex) {
                 if (ex.getErrorCode()!=88){
                     System.out.println(users[i]);
@@ -89,7 +94,20 @@ public class AnnotationSupport extends TimerTask{
         
         pos+=100;
         if(pos==1000){
+            try {
+                AnnotationUser user = new AnnotationUser(detailedUsers);
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (JSONException ex) {
+                Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
             System.exit(0);
+
         }
     }
 

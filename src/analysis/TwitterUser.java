@@ -58,6 +58,7 @@ public class TwitterUser {
     private ArrayList<DBObject> statuses;
     private ArrayList<String> texts;
     private ArrayList<String> cleanTexts;
+    private HashMap<String, String> cleanDirtyTexts;
 
     //FAVORITES
     private int favorites;
@@ -138,6 +139,7 @@ public class TwitterUser {
         this.retweetsTweetsRatio = 0;
         this.statuses = new ArrayList<>();
         this.cleanTexts = new ArrayList<>();
+        this.cleanDirtyTexts = new HashMap<>();
         this.texts = new ArrayList<>();
 
         this.favorites = 0;
@@ -543,9 +545,9 @@ public class TwitterUser {
      * Removes mentions & links
      */
     public void cleanTweets(){
-        for(String text: texts){
+        for(String dirty: texts){
             
-            String[] split = text.split("\\s+");
+            String[] split = dirty.split("\\s+");
             for(int i=0; i<split.length; i++){
                 if(split[i].startsWith("@")){ //remove mentions
                     split[i] = "";
@@ -563,6 +565,12 @@ public class TwitterUser {
             clean = clean.replaceAll("\"", "");
             clean = clean.toLowerCase();
             cleanTexts.add(clean);
+            
+            dirty = dirty.replaceAll("[\\t\\n\\r]"," ");
+            dirty = dirty.replaceAll("\"", "");
+            dirty = dirty.toLowerCase();
+            cleanDirtyTexts.put(clean, dirty);
+            
         }
         
     }
@@ -1006,5 +1014,46 @@ public class TwitterUser {
     public void setUrlEntropy(double urlEntropy) {
         this.urlEntropy = urlEntropy;
     }
+
+    public String getScreenName() {
+        return screenName;
+    }
+
+    public void setScreenName(String screenName) {
+        this.screenName = screenName;
+    }
+
+    public HashMap<String, String> getCleanDirtyTexts() {
+        return cleanDirtyTexts;
+    }
+
+    public void setCleanDirtyTexts(HashMap<String, String> cleanDirtyTexts) {
+        this.cleanDirtyTexts = cleanDirtyTexts;
+    }
+
+    public String getProfURL() {
+        return profURL;
+    }
+
+    public void setProfURL(String profURL) {
+        this.profURL = profURL;
+    }
+
+    public String getBannerURL() {
+        return bannerURL;
+    }
+
+    public void setBannerURL(String bannerURL) {
+        this.bannerURL = bannerURL;
+    }
+
+    public HashMap<String, Integer> getGrams() {
+        return grams;
+    }
+
+    public void setGrams(HashMap<String, Integer> grams) {
+        this.grams = grams;
+    }
+    
 
 }
