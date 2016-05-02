@@ -1,22 +1,16 @@
 package analysis;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import twitter4j.AccountSettings;
-import twitter4j.IDs;
 import twitter4j.JSONException;
-import twitter4j.PagableResponseList;
-import twitter4j.ResponseList;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
@@ -41,8 +35,7 @@ public class AnnotationSupport extends TimerTask{
     
     public int pos=0;
     
-    
-    private ArrayList<User> detailedUsers;
+    private final ArrayList<User> detailedUsers;
     
     public AnnotationSupport() throws TwitterException, IOException{
         configuration();
@@ -82,7 +75,7 @@ public class AnnotationSupport extends TimerTask{
     @Override
     public void run() {
         
-        for(int i=pos; i<pos+100; i++){
+        for(int i=pos; i<pos+100; i++){ //+100
             try {
                 detailedUsers.add(twitter.showUser(users[i]));
             } catch (TwitterException ex) {
@@ -92,17 +85,18 @@ public class AnnotationSupport extends TimerTask{
             }
         }
         
-        pos+=100;
+        pos+=100; //+100
         if(pos==1000){
+            
             try {
-                AnnotationUser user = new AnnotationUser(detailedUsers);
+                AnnotationUser usersAnn = new AnnotationUser(detailedUsers);
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
             } catch (UnsupportedEncodingException ex) {
                 Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
                 Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (JSONException ex) {
+            } catch (JSONException | URISyntaxException ex) {
                 Logger.getLogger(AnnotationSupport.class.getName()).log(Level.SEVERE, null, ex);
             }
             
@@ -110,24 +104,4 @@ public class AnnotationSupport extends TimerTask{
 
         }
     }
-
-//    @Override
-//    public void run() {
-//        
-//        for(int i=pos; i<pos+100; i++){
-//            try {
-//                User user = twitter.showUser(users[i]);
-//                
-//            } catch (TwitterException ex) {
-//                if (ex.getErrorCode()!=88){
-//                    System.out.println(users[i]);
-//                }
-//            }
-//        }
-//        
-//        pos+=100;
-//        if(pos==1000){
-//            System.exit(0);
-//        }
-//    }
 }

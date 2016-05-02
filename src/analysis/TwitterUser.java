@@ -92,6 +92,7 @@ public class TwitterUser {
     private double percentageTweetsWithURL;
     private double urlRatio;
     private HashSet<String> uniqueURLs;
+    private ArrayList<String> urlsList;
 
     //SOURCES
     private HashMap<String, Integer> tweetsPerSource;
@@ -99,7 +100,9 @@ public class TwitterUser {
 
     //DOMAINS
     private HashSet<String> uniqueDomains;
+    private HashMap<String, Integer> tweetsPerDomain;
     private double urlDomainRatio;
+    private String mostFrequentDomain;
 
     //TIME FOLLOWED
     private long timeFollowed; // total time we followed the user (hours)
@@ -159,6 +162,7 @@ public class TwitterUser {
         this.percentageTweetsWithURL = 0;
         this.urlRatio = 0;
         this.uniqueURLs = new HashSet<>();
+        this.urlsList = new ArrayList<>();
 
         this.description = null;
 
@@ -166,7 +170,9 @@ public class TwitterUser {
         this.mostFrequentSource = null;
 
         this.uniqueDomains = new HashSet<>();
+        this.tweetsPerDomain = new HashMap<>();
         this.urlDomainRatio = 0;
+        this.mostFrequentDomain = null;
 
         this.timeFollowed = 0;
 
@@ -190,7 +196,7 @@ public class TwitterUser {
 //        setVerified(objectBool(ver));
 //        setFollowees(friends);
 //        setFollowers(fol);
-        setFol_fol_ratio(calculateRatio(followers, followees));
+//        setFol_fol_ratio(calculateRatio(followers, followees));
 //        setAge(createdAt);
 //        setFavorites(fav);
 //        setDescription(desc);
@@ -248,7 +254,7 @@ public class TwitterUser {
             }
             
             //======= GETTING TEXTS =======
-            addTweet(jobj.getString("text"));
+            //addTweet(jobj.getString("text"));
             
             mentions += mentionsArr[counter];
             hashtags += hashtagsArr[counter];
@@ -266,6 +272,7 @@ public class TwitterUser {
             
             for (String expUrl : expanded_url) {
                 addUniqueURL(expUrl);
+                urlsList.add(expUrl);
             }
 
             counter++;
@@ -284,6 +291,7 @@ public class TwitterUser {
         calculateMostFrequentSource();
         try{
             calculateUniqueDomains();
+            calculateUrlDomains();
         } catch (java.net.URISyntaxException ex){
             //System.out.println("url syntax exception");
         }
@@ -420,8 +428,9 @@ public class TwitterUser {
      * calculates the most frequent source for the user after examining all the
      * sources that he used.
      *
+     * @return 
      */
-    public void calculateMostFrequentSource() {
+    public String calculateMostFrequentSource() {
         Integer maxFrequency = -1;
         Iterator it = tweetsPerSource.entrySet().iterator();
         while (it.hasNext()) {
@@ -431,6 +440,22 @@ public class TwitterUser {
                 mostFrequentSource = (String) tPs.getKey();
             }
         }
+        
+        return mostFrequentSource;
+    }
+    
+    /**
+     * calculates the most frequent source for the user after examining all the
+     * sources that he used.
+     *
+     * @return 
+     */
+    public void removeSource(String s) {
+        tweetsPerSource.remove(s);
+    }
+    
+    public void removeDomain(String s) {
+        tweetsPerDomain.remove(s);
     }
 
     /**
@@ -454,6 +479,38 @@ public class TwitterUser {
         }
         urlDomainRatio = calculateRatio(uniqueDomains.size(), urls);
     }
+    
+    /**
+     * Calculates the  domains used by urls
+     *
+     * @throws URISyntaxException
+     */
+    public void calculateUrlDomains() throws URISyntaxException {
+        
+        for (String aUrl : urlsList) {
+            if(tweetsPerDomain.containsKey(getDomainName(aUrl))){
+                tweetsPerDomain.replace(getDomainName(aUrl), tweetsPerDomain.get(getDomainName(aUrl)) + 1);
+            } else {
+                tweetsPerDomain.put(getDomainName(aUrl),1);
+            }
+        }
+    }
+    
+    public String calculateMostFrequentDomain() {
+        Integer maxFrequency = -1;
+        Iterator it = tweetsPerDomain.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry tPs = (Map.Entry) it.next();
+            if (maxFrequency < (Integer) tPs.getValue()) {
+                maxFrequency = (Integer) tPs.getValue();
+                mostFrequentDomain = (String) tPs.getKey();
+            }
+        }
+        
+        return mostFrequentDomain;
+    }
+    
+    
 
     /**
      * Extracts the domain name out of a string.
@@ -1053,6 +1110,30 @@ public class TwitterUser {
 
     public void setGrams(HashMap<String, Integer> grams) {
         this.grams = grams;
+    }
+
+    public ArrayList<String> getUrlsList() {
+        return urlsList;
+    }
+
+    public void setUrlsList(ArrayList<String> urlsList) {
+        this.urlsList = urlsList;
+    }
+
+    public HashMap<String, Integer> getTweetsPerDomain() {
+        return tweetsPerDomain;
+    }
+
+    public void setTweetsPerDomain(HashMap<String, Integer> tweetsPerDomain) {
+        this.tweetsPerDomain = tweetsPerDomain;
+    }
+
+    public String getMostFrequentDomain() {
+        return mostFrequentDomain;
+    }
+
+    public void setMostFrequentDomain(String mostFrequentDomain) {
+        this.mostFrequentDomain = mostFrequentDomain;
     }
     
 
