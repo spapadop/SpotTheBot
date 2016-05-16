@@ -45,7 +45,7 @@ public class AnnotationTweet {
     }
     
     private void calcLiveFeedLink(){
-        String query = "https://twitter.com/search?q=";
+        String query = "https://twitter.com/search?f=tweets&q=";
         String[] words = cleanText.split(" ");
         query += words[0];
         for (int i = 1; i < words.length; i++) {

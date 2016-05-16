@@ -270,18 +270,30 @@ public class AnnotationUser {
         }
 
         stopwords.add("");
+        stopwords.add("\t");
+        stopwords.add("\n");
+        stopwords.add("\r");
+        stopwords.add(" "); 
         stopwords.add(",");
         stopwords.add(".");
+        stopwords.add("..");    
+        stopwords.add("...");
         stopwords.add(":");
         stopwords.add(";");
         stopwords.add("!");
         stopwords.add("-");
         stopwords.add("?");
+        stopwords.add("??");
+        stopwords.add("???");
+        stopwords.add("????");
+        stopwords.add("?????");
         stopwords.add("&");
         stopwords.add("d");
         stopwords.add("u");
+        stopwords.add("i");
         stopwords.add("!!");
-        stopwords.add("...");
+        stopwords.add("!!!");
+        stopwords.add("r");
         stopwords.add("&amp;");
 
         for (String sw : stopwords) {

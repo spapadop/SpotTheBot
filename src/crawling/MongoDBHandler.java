@@ -180,6 +180,13 @@ public class MongoDBHandler {
         return followedUsersColl.count(query) != 0;
     }
 
+    
+    public String findScreenName(String id){
+        BasicDBObject query = new BasicDBObject(); //make a query to find screen name of user
+        query.put("id_str", id);
+        return usersColl.findOne(query).get("screen_name").toString();
+    }
+    
     /**
      * Updates the finish time of the observing activity of a user. It sets it
      * as the time for next checking, since we are going to follow for sure his
