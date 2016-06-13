@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.text.Normalizer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class AnnotationUser {
 
     private void loadBinData() throws IOException {
         binData = new HashMap<>();
-        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Desktop\\randomSample\\run1\\sample.txt"));
+        BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\sokpa\\Desktop\\randomSample\\run2\\sample.txt"));
         String line = reader.readLine(); //header
 
         line = reader.readLine();//body
@@ -111,7 +112,7 @@ public class AnnotationUser {
         mongo = new MongoDBHandler();
         loadBinData();
 
-        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\results.txt", "UTF-8");
+        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\results2.txt", "UTF-8");
         writeTemplate();
 
         for (User u : detailedUsers) {
@@ -137,6 +138,10 @@ public class AnnotationUser {
             fullName = fullName.replaceAll("\"", "");;
             description = description.replaceAll("[\\t\\n\\r]", " ").toLowerCase().trim();
             description = description.replaceAll("\"", "");
+            
+            fullName = Normalizer.normalize(fullName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+            screenName = Normalizer.normalize(screenName, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+            description = Normalizer.normalize(description, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
 
             writer.print(id + "\t" + binData.get(id) + "\t" + fullName + "\t" + screenName + "\t" + verified + "\t" + age + "\t" + numDuplicates
                     + "\t" + description + "\t" + imgURL + "\t" + bannerURL + "\t" + linkToProf
@@ -144,7 +149,7 @@ public class AnnotationUser {
 
             for (AnnotationTweet t : userTweetsTopFive) {
                 if (t != null) {
-                    writer.print("\t" + t.getText() + "\t" + t.getNumTimesPosted() + "\t" + t.getLiveFeedLink() + "\t" + t.getTweetID());
+                    writer.print("\t" + t.getText() + "\t" + t.getNumTimesPosted() + "\t" + Normalizer.normalize(t.getLiveFeedLink(), Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "") + "\t" + t.getTweetID());
                 } else {
                     writer.print("\t" + "n/a" + "\t" + "n/a" + "\t" + "n/a" + "\t" + "n/a");
                 }
@@ -158,7 +163,7 @@ public class AnnotationUser {
 
             String[][] topWords = findTop10Words();
             for (int i = 0; i < 10; i++) {
-                writer.print("\t" + topWords[i][0] + "\t" + topWords[i][1]);
+                writer.print("\t" + Normalizer.normalize(topWords[i][0], Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "") + "\t" + topWords[i][1]);
             }
 
 //            HashMap<String, Integer> topWords = findTop10Words();
@@ -176,7 +181,7 @@ public class AnnotationUser {
             int counter = 0;
             while (counter < 10 && !user.getTweetsPerSource().isEmpty()) {
                 String maxKey = user.calculateMostFrequentSource();
-                writer.print("\t" + maxKey + "\t" + user.getTweetsPerSource().get(maxKey));
+                writer.print("\t" + Normalizer.normalize(maxKey, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "") + "\t" + user.getTweetsPerSource().get(maxKey));
                 user.removeSource(maxKey);
                 counter++;
             }
@@ -206,7 +211,8 @@ public class AnnotationUser {
             counter = 0;
             while (counter < 10 && !user.getTweetsPerDomain().isEmpty()) {
                 String maxKey = user.calculateMostFrequentDomain();
-                writer.print("\t" + maxKey + "\t" + user.getTweetsPerDomain().get(maxKey));
+                String temp = Normalizer.normalize(maxKey, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
+                writer.print("\t" + temp + "\t" + user.getTweetsPerDomain().get(maxKey));
                 user.removeDomain(maxKey);
                 counter++;
             }
@@ -545,9 +551,9 @@ public class AnnotationUser {
     }
 
     private void removeDeletedUsers() throws FileNotFoundException, UnsupportedEncodingException, IOException {
-        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\finalResults.txt", "UTF-8");
+        writer = new PrintWriter("C:\\Users\\sokpa\\Desktop\\finalResults2.txt", "UTF-8");
 
-        File file = new File("C:\\Users\\sokpa\\Desktop\\run1_deleted.txt");
+        File file = new File("C:\\Users\\sokpa\\Desktop\\run2_deleted.txt");
         BufferedReader reader = new BufferedReader(new FileReader(file));
         HashSet<Long> delUsers = new HashSet<>();
         String line;
@@ -556,7 +562,7 @@ public class AnnotationUser {
         }
         reader.close();
 
-        file = new File("C:\\Users\\sokpa\\Desktop\\results.txt");
+        file = new File("C:\\Users\\sokpa\\Desktop\\results2.txt");
         reader = new BufferedReader(new FileReader(file));
         line = reader.readLine(); //header out
         writer.println(line);

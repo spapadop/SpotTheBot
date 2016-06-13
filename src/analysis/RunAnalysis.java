@@ -36,9 +36,9 @@ public class RunAnalysis {
         
         AnnotationSupport checkUsers = new AnnotationSupport();
                 
-        //create task to be executed every 1 hour
+        //create task to be executed every 20 minutes
         Timer time = new Timer();
-        time.schedule(checkUsers, 0, 1800000);
+        time.schedule(checkUsers, 0, 1200000);
         
 //        MongoDBHandler m = new MongoDBHandler();
 //        DBCursor cursor = m.getFollowedUsersColl().find();

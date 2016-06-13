@@ -49,6 +49,9 @@ public class AnnotationTweet {
         String[] words = cleanText.split(" ");
         query += words[0];
         for (int i = 1; i < words.length; i++) {
+            if (words[i].startsWith("#")){
+                words[i] = words[i].substring(1);
+            }
             query += "%20" + words[i];
         }
         query += "&src=typd";
